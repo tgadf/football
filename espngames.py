@@ -36,9 +36,6 @@ class espn:
         return self.baseurl
 
 
-# In[3]:
-
-
 ############################################################################################################
 # Game Class
 ############################################################################################################
@@ -131,15 +128,10 @@ class season:
         self.teams[teamID] = team
 
 
-# In[ ]:
 
-
-
-
-
-# In[4]:
-
-
+############################################################################################################
+# Historical Class
+############################################################################################################
 class historical(espn, output):
     def __init__(self):
         self.name = "historical"
@@ -186,6 +178,10 @@ class historical(espn, output):
         outputdir = mkSubDir(self.getSaveDir(), subdir)
         self.seasonDir = outputdir
         
+        subdir    = "statistics"
+        outputdir = mkSubDir(self.getSaveDir(), subdir)
+        self.statisticsDir = outputdir
+        
         subdir    = "results"
         outputdir = mkSubDir(self.getSaveDir(), subdir)
         self.resultsDir = outputdir
@@ -199,12 +195,19 @@ class historical(espn, output):
         outputdir = mkSubDir(self.getResultsDir(), subdir)
         self.seasonResultsDir = outputdir
         
+        subdir    = "statistics"
+        outputdir = mkSubDir(self.getResultsDir(), subdir)
+        self.statisticsResultsDir = outputdir
+        
         subdir    = "games"
         outputdir = mkSubDir(self.getResultsDir(), subdir)
         self.gamesResultsDir = outputdir
         
     def getSeasonDir(self):
         return self.seasonDir
+    
+    def getStatisticsDir(self):
+        return self.statisticsDir
         
     def getGamesDir(self):
         return self.gamesDir
@@ -215,6 +218,9 @@ class historical(espn, output):
     def getSeasonResultsDir(self):
         return self.seasonResultsDir
         
+    def getStatisticsResultsDir(self):
+        return self.statisticsResultsDir
+        
     def getGamesResultsDir(self):
         return self.gamesResultsDir
         
@@ -224,11 +230,20 @@ class historical(espn, output):
         return outputdir
         
         
+    def getYearlyStatisticsDir(self, year):
+        outputdir = mkSubDir(self.getStatisticsDir(), str(year))
+        return outputdir
+        
+        
     def getYearlyGamesDir(self, year):
         outputdir = mkSubDir(self.getGamesDir(), str(year))
         return outputdir
         
         
+    
+    ############################################################################################################
+    # Team Standings + Games
+    ############################################################################################################
     def downloadTeamStandingsByYear(self, year, debug=False):
         baseurl  = self.getBase()
         suburl   = "college-football/standings/_/season"
@@ -481,8 +496,11 @@ class historical(espn, output):
 
             savename = setFile(self.getSeasonResultsDir(), "{0}.p".format(year))            
             saveFile(idata=seasonData, ifile=savename, debug=True)
-            
-            
+                        
+         
+    ############################################################################################################
+    # Team Games
+    ############################################################################################################   
     def downloadGameDataByID(self, gameID, year, test=False, debug=False):        
         gamesDir   = self.getYearlyGamesDir(year)
         url="http://www.espn.com/college-football/playbyplay?gameId={0}".format(gameID)
@@ -767,4 +785,135 @@ class historical(espn, output):
         return noData
 
         
+
+            
+        
+        
+    
+    ############################################################################################################
+    # Team Statistics
+    ############################################################################################################
+    def downloadTeamStatisticsDataByYear(self, idval, name, year, debug=False):
+        baseurl  = self.getBase()
+        suburl   = "college-football/team/stats/_/id/{0}/season".format(idval)
+        url      = join(baseurl, suburl, str(year))
+        
+        outputdir = self.getYearlyStatisticsDir(year)
+        savename  = setFile(outputdir, "{0}-{1}.p".format(name, year))
+        if isFile(savename):
+            return
+        
+        if debug:
+            print("Downloading {0} to {1}".format(url, savename))
+        getWebData(base=url, savename=savename, useSafari=False)
+        sleep(15+2*random())        
+        
+        
+    def downloadTeamStatisticsData(self, debug=False):
+        resultsDir = self.getSeasonResultsDir()
+        files = findExt(resultsDir, ext=".p", debug=False)
+
+        sleep(3)
+        
+        for ifile in files:
+            seasonData = getFile(ifile)
+            year       = seasonData.getYear()
+            gamesDir   = self.getYearlyGamesDir(year)
+            
+            if year != 2014:
+                continue
+            
+            teams = seasonData.teams
+            for teamID,teamData in teams.items():
+                name = teamData.teamName
+                self.downloadTeamStatisticsDataByYear(teamID, name, year, debug)
+                
+
+    def parseTeamStatisticsData(self, startYear=2014, endYear=2018, debug=False, verydebug=False):
+        for year in range(startYear, endYear+1):
+            
+            yearData = {}
+            
+            statsDir = self.getYearlyStatisticsDir(year)        
+            files    = findExt(statsDir, ext=".p", debug=False)
+            
+            
+            for i,ifile in enumerate(files):
+                teamStatistics = {}
+
+                print(ifile)
+                htmldata = getFile(ifile)
+                bsdata   = getHTML(htmldata)
+                
+                divs       = bsdata.findAll("div", {"class": "Table2__Title"})
+                tableNames = [x.text for x in divs]
+                
+                tables = bsdata.findAll("table", {"class": "Table2__table__wrapper"})
+                
+                ## Skip the team leaders table
+                tableNames = tableNames[1:]
+                #tables     = tables[1:]
+                if len(tables) != len(tableNames):
+                    for it,table in enumerate(tables):
+                        ths     = table.findAll("th")
+                        headers = [x.text for x in ths]
+                        print(it,headers)
+                        
+                    raise ValueError("There are {0} tables and {1} names".format(len(tables), tableNames))
+                #print("  Found {0} tables and {1} names".format(len(tables), len(tableNames)))
+                
+                    
+                    
+                tableData = dict(zip(tableNames, tables))                
+                for tableName, table in tableData.items():
+                    ths     = table.findAll("th")
+                    headers = [x.text for x in ths]
+                    
+                    trs     = table.findAll("tr")[2:]
+                    
+                    players = {}
+                    iData   = -1
+                    for tr in trs:
+                        linedata = [x for x in tr.strings]
+                        
+                        ## Get player first
+                        if len(linedata) == 3:
+                            try:
+                                name     = linedata[0]
+                                position = linedata[2]
+                            except:
+                                raise ValueError("Could not parse line data: {0}".format(linedata))
+                                
+                            key = ":".join([name,position])
+                            players[key] = None
+                        elif len(linedata) == 1:
+                            players["TOTAL:ALL"] = None
+                            playerNames = list(players.keys())
+                        elif len(linedata) == len(headers) - 1:
+                            if iData == -1:
+                                header = linedata
+                                iData += 1
+                                continue
+                            else:
+                                try:
+                                    playerData = dict(zip(header, linedata))
+                                except:
+                                    raise ValueError("Could not combine header [{0}] with data [{1}]".format(header, linedata))
+                                    
+                            try:
+                                players[playerNames[iData]] = playerData
+                            except:
+                                raise ValueError("Could not set data for [{0}] with data: {1}".format(iData,playerData))
+                            #print(iData,'\t',playerNames[iData],'\t',playerData)
+                            iData += 1
+                            
+                    #print(tableName,'-->',players)
+                    teamStatistics[tableName] = players
+
+            yearData[year] = teamStatistics
+                
+            print("Parsed {0}/{1} games in {2}".format(len(yearData), len(files), year))
+            savename = setFile(self.getStatisticsResultsDir(), "{0}-stats.p".format(year))
+            saveFile(idata=yearData, ifile=savename, debug=True)
+
 
