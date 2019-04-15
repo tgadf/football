@@ -1,7 +1,7 @@
 from searchUtils import findNearest
-from collections import Counter
 import re
-from teamStatistics import teamstatisticsclass
+import sys
+from teamPlayers import teamstatisticsclass
 
 class teamplayers:
     def __init__(self, statsData):
@@ -96,6 +96,7 @@ class gameplayers:
         self.tsc = teamstatisticsclass()
 
         
+        
         self.punters   = {}
         self.runners   = {}
         self.kickers   = {}
@@ -157,7 +158,7 @@ class gameplayers:
         for name,pos in playersDict.items():
             if name in playText:
                 if debug:
-                    print("  EXACT MATCH: {0} <-- {1}".format(pos, name))
+                    print("\t\tEXACT MATCH: {0} <-- {1}".format(pos, name))
                 return [name,pos]
         
         if useNearest is not None:
@@ -168,7 +169,7 @@ class gameplayers:
                 name = pos[0]
                 pos  = playersDict[name]
                 if debug:
-                    print("  NEAR MATCH: {0} <-- {1}".format(name, playText))
+                    print("\t\tNEAR MATCH: {0} <-- {1}".format(name, playText))
                 return [name,pos]
         
         return None
@@ -197,43 +198,75 @@ class gameplayers:
 
         return [None,None,None]
 
+    
+    
+    ################################################################################################
+    # Common Functions
+    ################################################################################################
+    def getName(self, playText, fname, keys, debug=False, verydebug=False):
+        if debug:
+            print("\t{0}({1})".format(fname, playText))
+        if playText is None or keys is None:
+            return None
+        pos      = self.tsc.getPos(playText, keys, verydebug)
+        text     = self.tsc.getName(playText, pos, verydebug)
+        if verydebug:
+            print("\t{0}({1}) -> {2}".format(fname, playText, text))
+        return text
         
+
+    def getTeam(self, name, fname, posnames, homePlayers, awayPlayers, debug=False, verydebug=False):
+        posH   = self.findPlayerTeam(name, homePlayers, debug=verydebug)
+        posA   = self.findPlayerTeam(name, awayPlayers, debug=verydebug)
+        if verydebug:
+            print("\t{0}:  Home == {1} \tAway == {2}".format(fname, posH, posA))
+        retval = self.findReturnValue(posnames, posH, posA)
+        if debug:
+            print("\t{0}({1}) -> {2}".format(fname, name, retval))
+        return retval
+
+
         
     ################################################################################################
     # Kicking Players
     ################################################################################################
-    def getKickingTeam(self, playText, debug=False):
-        #playText = self.tsc.clean(playText)
-        pos      = self.tsc.getPos(playText, self.tsc.kickerkeys, debug)
-        text     = self.tsc.getName(playText, pos, debug)
-                        
+    def getKickingTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getName(playText, fname, self.tsc.kickerkeys, debug, verydebug)
         posnames = ["K", "PK", "P"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.kickers, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.kickers, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)
-        if debug:
-            print("  Kicking Team: {0}".format(retval))
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.kickers, self.awayTeamPlayers.kickers, debug, verydebug)
         return retval
     
         
         
+    
     ################################################################################################
-    # Field Goal Players
+    # PAT Players
     ################################################################################################
-
-
-
     def getPATText(self, playText, debug=False):
         start = playText.rfind("(")
         end   = playText.rfind(")")
         if start > 0 and end > 0 and start < end:
             playText = playText[start+1:end+1]
-            pos  = self.getPos(playText, self.fgkickerkeys, debug)
-            name = self.getName(playText, pos, debug)
-            return name
+            return playText
         return None
-            
-                
+    
+    def getPATKickingTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        playText = self.getPATText(playText)
+        text = self.getName(playText, fname, self.tsc.fgkickerkeys, debug, verydebug)
+        posnames = ["K", "PK", "P"]
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.fgkickers, self.awayTeamPlayers.fgkickers, debug, verydebug)
+        return retval
+    
+        
+    
+    
+    ################################################################################################
+    # Field Goal Players
+    ################################################################################################
     def getFGText(self, playText, debug=False):
         ### Field Goal
         kick = ("(fg|FG)")
@@ -259,27 +292,12 @@ class gameplayers:
         return None
 
     
-    def getFGKickingTeam(self, playText, debug=False):
-        if debug:
-            print("\tgetFGKickingTeam(",playText,")")
-            
-        text = self.getFGText(playText, debug)
-        if text is None:
-            #playText = self.tsc.clean(playText)
-            pos      = self.tsc.getPos(playText, self.tsc.fgkickerkeys, debug)
-            if debug:
-                print("\tgetFGKickingTeam:",pos)
-            text     = self.tsc.getName(playText, pos, debug)
-            if debug:
-                print("\tgetFGKickingTeam:",text)
-                        
+    def getFGKickingTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getFGText(playText)
         posnames = ["K", "PK", "P"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.fgkickers, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.fgkickers, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)
-        
-        if debug:
-            print("  Field Goal Kicking Team: {0}".format(retval))
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.fgkickers, self.awayTeamPlayers.fgkickers, debug=debug, verydebug=verydebug)
         return retval
     
         
@@ -287,27 +305,12 @@ class gameplayers:
     ################################################################################################
     # Punting Players
     ################################################################################################
-    def getPuntingTeam(self, playText, debug=False):
-        if debug:
-            print("\tgetPuntingTeam(",playText,")")
-        #playText = self.tsc.clean(playText)
-        if debug:
-            print("\tgetPuntingTeam(",playText,")")
-        pos      = self.tsc.getPos(playText, self.tsc.punterkeys, debug)
-        if debug:
-            print("\tgetPuntingTeam:",pos)
-        text     = self.tsc.getName(playText, pos, debug)
-        if debug:
-            print("\tgetPuntingTeam:",text)
-
-
+    def getPuntingTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getName(playText, fname, self.tsc.punterkeys, debug, verydebug)
         posnames = ["K", "PK", "P"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.punters, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.punters, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)
-        
-        if debug:
-            print("  Punting Team: {0}".format(retval))        
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.punters, self.awayTeamPlayers.punters, debug, verydebug)
         return retval
     
     
@@ -315,18 +318,27 @@ class gameplayers:
     ################################################################################################
     # Passing Players
     ################################################################################################
-    def getPassingTeam(self, playText, debug=False):
-        #playText = self.tsc.clean(playText)
-        pos      = self.tsc.getPos(playText, self.tsc.passerkeys, debug)
-        text     = self.tsc.getName(playText, pos, debug)
-                        
-        posnames = ["QB"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.passers, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.passers, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)
+    def getPassingTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getName(playText, fname, self.tsc.passerkeys, debug, verydebug)
+        posnames = ["QB", "RB", "WR"]
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.passers, self.awayTeamPlayers.passers, debug, verydebug)
         
-        if debug:
-            print("  Passing Team: {0}".format(retval))
+        if retval[0] is None:
+            wrd1 = ("(pass|Pass|PASS)")
+            wrd2 = ("(from|From|FROM)")
+            num  = "([+-?]\d+|\d+)"  
+            dist = ("(yards|yard|Yard|Yds|yds|Yd|yd)")
+            m = re.split("{0}\s{1}\s{2}\s{3}".format(num, dist, wrd1, wrd2), playText)
+            if len(m) > 1:
+                try:                    
+                    text   = " ".join([x.strip() for x in m[-1].split()[:2]])
+                    retval = self.getTeam(text, text, posnames, 
+                                          self.homeTeamPlayers.passers, self.awayTeamPlayers.passers, debug, verydebug)
+                except:
+                    pass
+                
         return retval
     
     
@@ -334,18 +346,12 @@ class gameplayers:
     ################################################################################################
     # Sacked Players
     ################################################################################################
-    def getSackedTeam(self, playText, debug=False):
-        #playText = self.tsc.clean(playText)
-        pos      = self.tsc.getPos(playText, self.tsc.sackedkeys, debug)
-        text     = self.tsc.getName(playText, pos, debug)
-                        
+    def getSackedTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getName(playText, fname, self.tsc.sackedkeys, debug, verydebug)
         posnames = ["QB"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.passers, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.passers, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)
-        
-        if debug:
-            print("  Passing Team: {0}".format(retval))
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.passers, self.awayTeamPlayers.passers, debug, verydebug)
         return retval
     
         
@@ -353,15 +359,12 @@ class gameplayers:
     ################################################################################################
     # Running Players
     ################################################################################################
-    def getRunningTeam(self, playText, debug=False):
-        #playText = self.tsc.clean(playText)
-        pos      = self.tsc.getPos(playText, self.tsc.runnerkeys, debug)
-        text     = self.tsc.getName(playText, pos, debug)
-                         
-        posnames = ["RB", "QB", "WR"]
-        posH   = self.findPlayerTeam(text, self.homeTeamPlayers.runners, debug=debug)
-        posA   = self.findPlayerTeam(text, self.awayTeamPlayers.runners, debug=debug)        
-        retval = self.findReturnValue(posnames, posH, posA)      
+    def getRunningTeam(self, playText, debug=False, verydebug=False):
+        fname = sys._getframe().f_code.co_name
+        text = self.getName(playText, fname, self.tsc.runnerkeys, debug, verydebug)
+        posnames = ["QB", "WR", "RB"]
+        retval = self.getTeam(text, fname, posnames, 
+                              self.homeTeamPlayers.runners, self.awayTeamPlayers.runners, debug, verydebug)
         
         if retval[0] is None:
             run  = ("(run|Run|RUN)")
@@ -370,14 +373,10 @@ class gameplayers:
         
             m = re.split("{0}\s{1}\s{2}".format(num, dist, run), playText)
             if len(m) > 1:
-                text = m[0].strip()          
-
-                posH   = self.findPlayerTeam(text, self.homeTeamPlayers.runners, debug=debug)
-                posA   = self.findPlayerTeam(text, self.awayTeamPlayers.runners, debug=debug)        
-                retval = self.findReturnValue(posnames, posH, posA)    
+                text = m[0].strip()
+                retval = self.getTeam(text, fname, posnames, 
+                                      self.homeTeamPlayers.runners, self.awayTeamPlayers.runners, debug, verydebug)
                 
-        if debug:
-            print("  Running Team: {0}".format(retval))
         return retval
         
 
@@ -387,9 +386,9 @@ class gameplayers:
     ################################################################################################
     # Receiving Players
     ################################################################################################
-    def getReceivingTeam(self, playText, debug=False):
-        posnames = ["WR", "RB"]
-        retval = None
+    def getReceivingTeam(self, playText, debug=False, verydebug=False):
+        posnames = ["WR", "RB", "TE", "QB"]
+        retval = [None,None,None]
         
         ## Fix Text
         keys = ["pass complete", "Pass Complete", "PASS COMPLETE", "pass incomplete", "Pass Incomplete", "PASS INCOMPLETE"]

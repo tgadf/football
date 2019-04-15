@@ -24,7 +24,7 @@ class playtype:
             play = fieldgoalplay(playText, debug=debug)
         elif sum([x in playSubText for x in ["timeout", "Timeout"]]) > 0:
             play = timeoutplay(playText, debug=debug)
-        elif sum([x in playSubText for x in ["kickoff", "Kickoff", "kick off", "Kick Off", "Onside Kick", "Onside kick", "onside kick", "on-side kick"]]) > 0:
+        elif sum([x in playSubText for x in ["kickoff", "Kickoff", "kick off", "Kick Off", "Onside Kick", "Onside kick", "onside kick", "on-side kick", " kick for "]]) > 0:
             play = kickoffplay(playText, debug=debug)
         elif sum([x in playSubText for x in ["punt ", "PUNT", "Punt", " punted", " Punted", " punt,", " punter ", "punts "]]) > 0:
             play = puntplay(playText, debug=debug)
@@ -73,10 +73,14 @@ class playtype:
         elif len(playText) <= 1:
             self.play  = None
             self.valid = False
+            if debug:
+                print("PLAYTEXT is EMPTY!!! so PLAY == NONE")
         else:
             self.unknownPlays.append(playText)
             self.play = None
             self.valid = False
+            if debug:
+                raise ValueError("NO IDEA ABOUT THIS PLAY: {0}".format(playText))
             
         self.play = play
         
@@ -175,7 +179,7 @@ class puntplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
 
         
         
@@ -202,7 +206,7 @@ class kickoffplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
 
         
 ############################################################################################################
@@ -228,7 +232,7 @@ class fieldgoalplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -248,6 +252,7 @@ class patplay(footballplay):
                 
     def analyze(self, debug=False):
         self.pa.findPAT()
+        self.pa.touchdown = False
         self.yds.findYards()
         self.result = self.yds.kickingyards
         self.show(debug)
@@ -255,7 +260,7 @@ class patplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
 
             
 
@@ -286,7 +291,7 @@ class returnplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -310,7 +315,7 @@ class downsplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
         
 
         
@@ -335,7 +340,7 @@ class tbdplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -359,7 +364,7 @@ class noplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -387,7 +392,7 @@ class safetyplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -411,7 +416,7 @@ class timeoutplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -435,7 +440,7 @@ class endplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -459,7 +464,7 @@ class beginplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -486,7 +491,7 @@ class sackplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
         
 
@@ -514,7 +519,7 @@ class rushingplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))    
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))    
 
             
 
@@ -543,7 +548,7 @@ class passingplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
 
         
@@ -576,7 +581,7 @@ class fumbleplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
         
 
@@ -601,4 +606,4 @@ class touchdownplay(footballplay):
     def show(self, debug=False):
         if debug:
             print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items()]))) # if v is True]))) 
+            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items()]))) # if v is True]))) 

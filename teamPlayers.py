@@ -1,11 +1,35 @@
-from espngames import historical
+from historical import historical
+
+from os.path import join
+from fsUtils import mkSubDir, setFile, isFile, removeFile, isDir
+from ioUtils import getFile, saveFile
+from timeUtils import clock, elapsed
+from fileUtils import getBaseFilename, getBasename, getDirname
+from webUtils import getWebData, getHTML
+from timeUtils import printDateTime, getDateTime, addMonths
+from searchUtils import findExt
+from time import sleep
+from random import random
+import sys
+import re
+from datetime import timedelta
+from collections import Counter
+
+
+from footballPlays import playtype, footballplay, penaltyplay, puntplay, kickoffplay, fieldgoalplay
+from footballPlays import patplay, returnplay, downsplay, tbdplay, noplay, safetyplay
+from footballPlays import timeoutplay, endplay, beginplay, sackplay, rushingplay, passingplay, fumbleplay, touchdownplay
+
+from debug import debugclass
+
+
 
 class teamstatisticsclass:
     def __init__(self):
         self.passerkeys = []
         keys  = ["deep left pass", "deep right pass", "deep middle pass", "left side pass", "right side pass", "deep pass", "sideline pass", "middle pass", "post pass"]
         keys += ["across the middle pass", "right sideline pass", "right screen pass", "left screen pass", "deep sideline pass", "left sideline pass", "right endzone pass", "flag pass"]
-        keys += ["right deep sideline pass", "deep out pass", "medium pass", "short left pass", "shovel pass", " pass left ", " pass right ", "medium middle pass", "crossing pass"]
+        keys += ["right deep sideline pass", "deep out pass", "medium pass", "short left pass", "shovel pass", " pass left ", " pass right ", "medium middle pass", "crossing pass", "pass pass intercepted"]
         keys += ["slant pass", "curl pass", "screen pass", "left deep sideline pass", "short middle pass", "deep in pass"]
         names   = [" pass complete", " Pass Complete", "PASS COMPLETE"] + [" pass incomplete", " Pass Incomplete", "PASS INCOMPLETE"]
         names  += ["pass intercepted", "Pass Intercepted", "PASS INTERCEPTED"]
@@ -15,13 +39,14 @@ class teamstatisticsclass:
         for name in names:
             self.passerkeys.append("{0}".format(name))
         
-        self.sackedkeys = [" sack by", " Sack By", "SACK BY", " sacked by", " Sacked By", "SACKED BY"]
+        self.sackedkeys  = [" sack by", " Sack By", "SACK BY", " sacked by", " Sacked By", "SACKED BY"]
+        self.sackedkeys += [" sack for", " Sack For", "SACK FOR", " sacked for", " Sacked For", "SACKED FOR"]
                                 
         self.runnerkeys = ["run for ", "run for ".title(), "run for".upper(), "runs for ", "runs for ".title(), "runs for".upper()]
 
         self.punterkeys = [" punt for ", " Punt For ", " PUNT FOR ", " punts for ", " Punts For ", " PUNTS FOR "]
         
-        self.kickerkeys = ["kickoff", "Kickoff", "KICKOFF", "on-side kickoff"]
+        self.kickerkeys = ["kickoff", "Kickoff", "KICKOFF", "on-side kickoff", " kick for "]
         
         self.fgkickerkeys = ["Kick)", "kick)", "KICK)"]
 
@@ -40,7 +65,7 @@ class teamstatisticsclass:
             except:
                 raise ValueError("Could not get year from {0}".format(ifile))
             
-            if year != 2014:
+            if year not in [2014,2015,2016]:
                 continue
                 
             yearData = getFile(ifile)
@@ -328,7 +353,6 @@ class teamstatisticsclass:
             if retname:
                 return name
             self.addPlayer(name, possession, self.fgkickers, "PK", debug)
-        return None
             
                 
     def getFGText(self, playText, possession, retname=False, debug=False):
@@ -358,10 +382,9 @@ class teamstatisticsclass:
                 return name
             self.addPlayer(name, possession, self.fgkickers, "PK", debug)
             
-        return None
     
                 
     def getFieldGoalText(self, playText, possession, debug=False):
         playText = self.clean(playText)
-        self.getPATText(self, playText, possession, retname=False, debug=debug)
-        self.getFGText(self, playText, possession, retname=False, debug=debug)
+        self.getPATText(playText, possession, retname=False, debug=debug)
+        self.getFGText(playText, possession, retname=False, debug=debug)

@@ -15,16 +15,21 @@ class playtextclass:
     
     ## PAT
     def getPAT(self):
-        return self.getOnePtPAT() + self.getTwoPtPAT() + self.getUNKPtPAT()
+        return self.getOnePtPAT() + self.getTwoPtPAT() + self.getUNKPtPAT() + self.getDefensivePAT()
     
     def getDefensivePAT(self):
         return ["defensive PAT", "Defensive PAT"]
     
     def getOnePtPAT(self):
-        return [" Kick)", " KICK)", " kick)"]
+        retval = []
+        vals = ["kick)"]
+        for val in vals:
+            retval += [val, val.title(), val.upper()]
+        retval += [" PAT MISSED)", " PAT blocked)", "(PAT blocked)", "(PAT)", " BLOCKED)"]
+        return retval
     
     def getUNKPtPAT(self):
-        return ["PAT failed"]
+        return ["PAT failed", "Team Extra Point Attempt Failed"]
     
     def getTwoPtPAT(self):
         return ["2 point", " 2 Point", "Two-point", "two-point", "Two-Point", "two pt", "Two pt"]
@@ -42,11 +47,10 @@ class playtextclass:
     
     ## Penalty
     def getPenalty(self):
-        val = "touchdown"
-        retval = [val, val.title(), val.upper()]
-        
-        val = "ILLEGAL BLOCK"
-        retval += [val, val.title(), val.upper()]
+        retval = []
+        vals = ["ILLEGAL BLOCK", "illegal block"]
+        for val in vals:
+            retval += [val, val.title(), val.upper()]
         return retval
     
     
@@ -68,11 +72,6 @@ class playtextclass:
         return ["SAFETY", "Safety"]
     
     
-    ## Kicking
-    def getTouchback(self):
-        val = "touchdown"
-        retval = [val, val.title(), val.upper()]
-    
     ## Touchback
     def getTouchback(self):
         val = "touchback"
@@ -90,6 +89,13 @@ class playtextclass:
     def getFieldGoalMiss(self):
         return [" miss ", " missed", " Missed", "MISSED", "no good", "no good", "No Good", "No good", "NO GOOD", "Failed", "FAILED", "failed"]
     
+    def getFieldGoalReturn(self):
+        return [" FG RETURNED "]
+    
+    
+    ## Kickoff
+    def getKickoff(self):
+         return ["kickoff", "Kickoff", "kick off", "Kick Off", "Onside Kick", "Onside kick", "onside kick", "on-side kick", " kick for "]
     
     ## Punt
     def getPunt(self):
@@ -322,17 +328,6 @@ class playanalysis:
             if self.touchdown is False:
                 if sum([x in self.text for x in self.ptc.getPAT()]) > 0:
                     self.touchdown = True
-            
-    
-            
-    ##################################################
-    ## Basic Play
-    ##################################################
-    def addPAT(self, debug=False):
-        self.addpat = False
-        if self.touchdown is True:
-            if sum([x in self.text for x in self.ptc.getPAT()]) > 0:
-                self.addpat = True
         
             
     ##################################################
@@ -399,6 +394,8 @@ class playanalysis:
         self.called[fname] = True
 
         self.findBasicKicking(debug)
+        if sum([x in self.text for x in self.ptc.getFieldGoalReturn()]) > 0:
+            self.blocked = True
 
         if self.blocked is True or self.missed is True:
             self.fieldgoaltry = True
@@ -406,11 +403,20 @@ class playanalysis:
         else:
             self.fieldgoaltry = False
             self.fieldgoal    = True
+            
         
         
     ##################################################
     ## PAT Play
     ##################################################
+    def addPAT(self, debug=False):
+        self.addpat = False
+        if self.touchdown is True:
+            if sum([x in self.text for x in self.ptc.getPAT()]) > 0:
+                self.addpat = True
+                self.findPAT(debug)
+                
+                
     def findPAT(self, debug=False):
         fname = sys._getframe().f_code.co_name
         if self.called.get(fname) is not None:
