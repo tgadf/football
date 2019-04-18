@@ -20,6 +20,10 @@ import re
 from espngames import espn, output
 from espngames import team, game, season
 
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 
 ############################################################################################################
 # Historical Class
@@ -29,6 +33,8 @@ class historical(espn, output):
         self.name = "historical"
         espn.__init__(self)
         output.__init__(self)
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
         
         
         

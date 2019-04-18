@@ -4,10 +4,10 @@ import setuptools
 setup(
   name = 'football',
   py_modules = ['espngames', 'penalty', 'playYards', 'summary', 'playAnalysis',
-                'teamPlayers', 'debug', 'possession',
-                'historical', 'playbyplay',
+                'teamPlayers', 'debug', 'possession', 'playClock',
+                'historical', 'playbyplay', 'playStart',
                 'gamePlayers', 'changePossession', 'downloadESPN',
-                'playTypes', 'driveSummary'],
+                'playTypes', 'driveSummary', 'analyzePossession'],
   version = '0.0.1',
   description = 'Football Game Parsing Package',
   long_description = open('README.md').read(),

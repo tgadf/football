@@ -11,12 +11,19 @@ import re
 from datetime import timedelta
 from playTypes import playtype
 
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 
 ############################################################################################################
 ## Drive Class
 ############################################################################################################
 class driveclass:
     def __init__(self, headline, detail, possession, postdrivehomescore, postdriveawayscore, plays=None):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        
         self.headline = headline
         self.detail   = detail
         self.possession = possession
@@ -33,6 +40,9 @@ class driveclass:
 ############################################################################################################
 class drivedetailclass:
     def __init__(self, plays, yards, gametime):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        
         self.plays = plays
         self.yards = yards
         self.gametime = gametime
@@ -43,6 +53,9 @@ class drivedetailclass:
 ############################################################################################################
 class drivesummary:
     def __init__(self, drive, fieldMap):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 4*" "
+        
         self.name = "drivesummary"
         
         self.headline = None
@@ -93,6 +106,8 @@ class drivesummary:
         self.awayscore  = self.parseScore(awayscore)
         
         self.driveplays = data
+        
+        self.logger.debug("{0}Drive Summary: [{1} - {2}]  {3}".format(self.ind, self.awayscore, self.homescore, headline))
                     
         self.fullDrive = driveclass(headline=headline, detail=detail, possession=possession,
                                     postdrivehomescore=homescore, postdriveawayscore=awayscore)    
@@ -109,68 +124,52 @@ class drivesummary:
 
         
     def parsePossession(self, possession, fieldMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
         if not isinstance(possession, list):
-            raise ValueError("Possession is not a list: {0}".format(possession))
-            
+            self.logger.error("Possession is not a list: {0}".format(possession))            
         if len(possession) != 1:
-            raise ValueError("Not one element in possession list: {0}".format(possession))
+            self.logger.error("Not one element in possession list: {0}".format(possession))
             
-        teamID = possession[0]
-        
+        teamID = possession[0]        
         teamAbbrev = None
         try:
             teamAbbrev = fieldMap[teamID]
         except:
-            raise ValueError("Could not find {0} in field map: {1}".format(teamID, fieldMap))
+            self.logger.error("Could not find {0} in field map: {1}".format(teamID, fieldMap))
             
+        self.logger.debug("{0}Parsed Possession: {1}".format(self.ind, teamAbbrev))
         return teamAbbrev
     
     
 
     def parseHeadline(self, headline, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
-        pltype = None
-        
+        play = None        
         if isinstance(headline, list):
             if len(headline) >= 1:
-                ptype  = playtype(headline[0])
-                pltype = ptype.getPlay()
-                
-                if pltype is None:
-                    raise ValueError("Could not determine headline play type: {0}".format(headline[0]))
+                pt    = playtype()
+                play  = pt.getPlay(headline[0]).name
             else:
-                print("Not one headline entry: {0}".format(headline))
+                self.logger.error("Not one headline entry: {0}".format(headline))
         else:
-            raise ValueError("Headline is not a list: {0}".format(headline))
+            self.logger.error("Headline is not a list: {0}".format(headline))
                    
-        return pltype
+        self.logger.debug("{0}Parsed Headline: {1}".format(self.ind, play))
+        return play
     
     
     def parseScore(self, score, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
         if not isinstance(score, list):
-            raise ValueError("Could not determine score type: {0}".format(score))
-            
+            self.logger.error("Could not determine score type: {0}".format(score))
         if len(score) != 1:
-            raise ValueError("Not one detail entry: {0}".format(score))
+            self.logger.error("Not one detail entry: {0}".format(score))
             
         scoredata = score[0]
         
         try:
             scoredata = int(scoredata)
         except:
-            raise ValueError("Could not find an integer score for {0}".format(scoredata))
+            self.logger.error("Could not find an integer score for {0}".format(scoredata))
             
+        self.logger.debug("{0}Parsed Score: {1}".format(self.ind, scoredata))
         return scoredata
     
     

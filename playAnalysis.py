@@ -1,9 +1,15 @@
 import sys
 from playYards import playyards
 
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 class playtextclass:
     def __init__(self):
-        self.name = "Text Analysis"
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 8*" "
+        
         
     ## Passing
     def getInterception(self):
@@ -104,6 +110,9 @@ class playtextclass:
     
 class playanalysis:
     def __init__(self, text, playtype):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 8*" "
+        
         self.text  = text
         self.yards = None
         
@@ -127,6 +136,11 @@ class playanalysis:
         if self.__dict__.get(key) is not None:
             return self.__dict__[key]
         return None
+    
+    
+    def getKeys(self):
+        keys = [k for k,v in self.__dict__.items() if v is True]
+        return keys
     
     
     def setNoPlay(self):

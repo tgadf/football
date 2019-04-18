@@ -1,78 +1,76 @@
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 class debugclass:
     def __init__(self):
-        self.name = "debugclass"
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 0*" "
+        self.sep    = "======================================================"
         
-    def showPlay(self, drivePlay, driveNo=None, playNo=None, fout=None, debug=False):
-        if debug is False:
-            return        
+        
+    def showPlay(self, drivePlay, driveNo=None, playNo=None):
         play       = drivePlay.play
-        valid      = drivePlay.valid
-        if valid is False:
-            return
         possession = drivePlay.possession
+        valid      = play.valid
         text       = possession.text
-        keys = ",".join([k for k,v in play.pa.__dict__.items() if v is True])
-        if fout is not None:
-            print("{0}\t{1}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
-                                                                             str(possession.start),
-                                                                             str(play.name),
-                                                                             str(possession.player),
-                                                                             str(possession.position),
-                                                                             str(keys),str(text)), file=open(fout, "a"))
-        else:
-            print("{0}\t{1}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
-                                                                             str(possession.start),
-                                                                             str(play.name),
-                                                                             str(possession.player),
-                                                                             str(possession.position),
-                                                                             str(keys),str(text)))
+        keys       = play.pa.getKeys()
+        if valid is False:
+            self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
+                                                                                         "",
+                                                                                         str(play.name),
+                                                                                         "",
+                                                                                         "",
+                                                                                         str(keys),str(text)))
+            return
+            
+        self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
+                                                                                     str(possession.start),
+                                                                                     str(play.name),
+                                                                                     str(possession.player),
+                                                                                     str(possession.position),
+                                                                                     str(keys),str(text)))
 
 
 
     def header(self, fout=None):
-        if fout is not None:
-            print("{0}\t{1}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format("Drive","Play",
-                                                                             "Poss",
-                                                                             "Type",
-                                                                             "Player",
-                                                                             "Position",
-                                                                             "Keys","Text"), file=open(fout, "a"))
-        else:
-            print("{0}\t{1}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format("Drive","Play",
-                                                                             "Poss",
-                                                                             "Type",
-                                                                             "Player",
-                                                                             "Position",
-                                                                             "Keys","Text"))
+        self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format("Drv","Ply",
+                                                                                     "Poss",
+                                                                                     "Type",
+                                                                                     "Player",
+                                                                                     "Position",
+                                                                                     "Keys","Text"))
+
+        
+    def compDrive(self, driveData, prevDriveData, driveNo=None, expl=None):
+        self.logger.debug("\n{0} CompDrive({1}) {2}".format(self.sep, expl, self.sep))
+        self.header()
+        self.logger.debug("{0}New Drive".format(self.ind))
+        drivePlays = driveData.plays
+        for ipl,drivePlay in enumerate(drivePlays):
+            self.showPlay(drivePlay, driveNo=driveNo, playNo=ipl)
+        self.logger.debug("\n{0}Old Drive".format(self.ind))
+        drivePlays = prevDriveData.plays
+        for ipl,drivePlay in enumerate(drivePlays):
+            self.showPlay(drivePlay, driveNo=driveNo, playNo=ipl)
+        self.logger.debug("\n")
 
 
         
-    def showDrive(self, driveData, driveNo=None, fout=None, debug=False):
-        if debug is False:
-            return
-
+    def showDrive(self, driveData, driveNo=None, expl=None):
+        self.logger.debug("\n{0} ShowDrive({1}) {2}".format(self.sep, expl, self.sep))
         self.header()        
         drivePlays = driveData.plays
         for ipl,drivePlay in enumerate(drivePlays):
-            self.showPlay(drivePlay, driveNo=driveNo, playNo=ipl, fout=fout, debug=debug)                
-        if fout is None:
-            print("")
-        else:
-            print("", file=open(fout, "a"))
+            self.showPlay(drivePlay, driveNo=driveNo, playNo=ipl)
         
         
-    def showGame(self, gameData, fout=None, debug=False):
-        if debug is False:
-            return
-
-        self.header(fout)
-        
+    def showGame(self, gameData, expl=None):
+        self.logger.debug("\n{0} ShowGame({1}) {2}".format(self.sep, expl, self.sep))
+        self.header()        
         for idr,driveData in enumerate(gameData):
             drivePlays = driveData.plays
             for ipl,drivePlay in enumerate(drivePlays):
-                self.showPlay(drivePlay, driveNo=idr, playNo=ipl, fout=fout, debug=debug)
-                
-            if fout is None:
-                print("")
-            else:
-                print("", file=open(fout, "a"))
+                self.showPlay(drivePlay, driveNo=idr, playNo=ipl)
+            self.logger.debug("")
+        self.logger.debug("\n")

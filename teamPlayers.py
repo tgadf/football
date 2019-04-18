@@ -22,6 +22,10 @@ from footballPlays import timeoutplay, endplay, beginplay, sackplay, rushingplay
 
 from debug import debugclass
 
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 
 
 class teamstatisticsclass:

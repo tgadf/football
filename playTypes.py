@@ -1,16 +1,26 @@
 from playYards import playyards
-from playResult import playanalysis
+from playAnalysis import playanalysis
+
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
 
 
 ############################################################################################################
 ### ## Football Play Type
 ############################################################################################################
 class playtype:
-    def __init__(self, playText, debug=False):
+    def __init__(self):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 4*" "
+        
+        
+    def getPlay(self, playText):
+        self.logger.debug("{0}Finding Play Type for text [{1}]".format(self.ind, playText))
+        
         play = None
         self.playtext = playText
         self.valid = True
-        self.unknownPlays = []
         
         playSubText = playText
         pos = playText.rfind("(")
@@ -19,78 +29,71 @@ class playtype:
             
         
         if sum([x in playSubText for x in ["field goal", "Field Goal", "Field goal", "FIELD GOAL", " fg ", " FG ", "MISSED FG", "Missed FG"]]) > 0:
-            play = fieldgoalplay(playText, debug=debug)
+            play = fieldgoalplay(playText)
         elif sum([x in playText for x in ["fake field goal", "Fake Field Goal"]]) > 0:
-            play = fieldgoalplay(playText, debug=debug)
+            play = fieldgoalplay(playText)
         elif sum([x in playSubText for x in ["timeout", "Timeout"]]) > 0:
-            play = timeoutplay(playText, debug=debug)
+            play = timeoutplay(playText)
         elif sum([x in playSubText for x in ["kickoff", "Kickoff", "kick off", "Kick Off", "Onside Kick", "Onside kick", "onside kick", "on-side kick", " kick for "]]) > 0:
-            play = kickoffplay(playText, debug=debug)
+            play = kickoffplay(playText)
         elif sum([x in playSubText for x in ["punt ", "PUNT", "Punt", " punted", " Punted", " punt,", " punter ", "punts "]]) > 0:
-            play = puntplay(playText, debug=debug)
+            play = puntplay(playText)
         elif playSubText.endswith(" punt"):
-            play = puntplay(playText, debug=debug)
+            play = puntplay(playText)
         elif sum([x in playSubText for x in ["end of the ", "End Of The ", "End of the ", "end of ", "End of ", "END OF "]]) > 0:
-            play = endplay(playText, debug=debug)
+            play = endplay(playText)
         elif sum([x in playSubText for x in ["start of the ", "Start Of The ", "Start of the ", "Begin Drive", "start of ", "Start of ", "START OF "]]) > 0:
-            play = beginplay(playText, debug=debug)
+            play = beginplay(playText)
         elif sum([x in playSubText for x in ["SAFETY", "safety", "Safety"]]) > 0:
-            play = safetyplay(playText, debug=debug)
+            play = safetyplay(playText)
         elif sum([x in playSubText for x in [" sack ", " sacked ", " Sack ", " Sacked ", "sacked,"]]) > 0:
-            play = sackplay(playText, debug=debug)
+            play = sackplay(playText)
         elif sum([x in playSubText for x in [" pass ", " passed ", " Pass ", " Passed ", " spikes ", " spiked ", " pass,to ",
                                           "Interception Return", "Interception", "INTERCEPTION"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
-                play = touchdownplay(playText, debug=debug)
+                play = touchdownplay(playText)
             elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-                play = penaltyplay(playText, debug=debug)
+                play = penaltyplay(playText)
+            elif sum([x in playSubText for x in ["Pass run"]]) > 0:
+                play = rushingplay(playText)
             else:
-                play = passingplay(playText, debug=debug)
+                play = passingplay(playText)
         elif sum([x in playSubText for x in [" rush ", " rushed ", " Rush ", " Rushed ", " scramble", " rush,", " run ", " Run"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
-                play = touchdownplay(playText, debug=debug)
+                play = touchdownplay(playText)
             elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-                play = penaltyplay(playText, debug=debug)
+                play = penaltyplay(playText)
             else:
-                play = rushingplay(playText, debug=debug)
+                play = rushingplay(playText)
         elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-            play = penaltyplay(playText, debug=debug)
+            play = penaltyplay(playText)
         elif sum([x in playSubText for x in ["fumble", "Fumble", " fumbled ", " Fumble ", " Fumbled ", "FUMBLE"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
-                play = touchdownplay(playText, debug=debug)
+                play = touchdownplay(playText)
             else:
-                play = fumbleplay(playText, debug=debug)
+                play = fumbleplay(playText)
         elif sum([x in playSubText for x in ["downs", "Downs", "DOWNS"]]) > 0:
-            play = downsplay(playText, debug=debug)
+            play = downsplay(playText)
         elif sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
-            play = touchdownplay(playText, debug=debug)
+            play = touchdownplay(playText)
         elif sum([x in playSubText for x in ["extra point", "Extra Point", "Extra point", "PAT", "2 point", "2 Point", "two-point", "Two-point", "Two-Point"]]) > 0:
-            play = patplay(playText, debug=debug)
+            play = patplay(playText)
         elif sum([x in playSubText for x in ["NO PLAY", "No Play"]]) > 0:
-            play = noplay(playText, debug=debug)
+            play = noplay(playText)
         elif len(playText) > 1:
-            play = tbdplay(playText, debug=debug)
+            play = tbdplay(playText)
         elif len(playText) <= 1:
-            self.play  = None
-            self.valid = False
-            if debug:
-                print("PLAYTEXT is EMPTY!!! so PLAY == NONE")
+            play = tbdplay(playText)
         else:
-            self.unknownPlays.append(playText)
-            self.play = None
-            self.valid = False
-            if debug:
-                raise ValueError("NO IDEA ABOUT THIS PLAY: {0}".format(playText))
+            play = tbdplay(playText)
+
+        return play
             
-        self.play = play
         
                 
     def isValid(self):
         return self.valid
             
-    def getPlay(self):
-        return self.play
-        
     def getPlayText(self):
         return self.playtext
                         
@@ -102,6 +105,7 @@ class footballplay:
     def __init__(self, playtype, text, debug=False):
         self.playtype = playtype.title()
         self.text     = text
+        self.valid    = True
         
         self.__dict__[playtype] = True
         
@@ -130,29 +134,31 @@ class footballplay:
         if debug:
             print("===> {0} Play".format(self.playtype))
 
+
+
 ############################################################################################################
 ## Penalty Play
 ############################################################################################################
 class penaltyplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "penalty"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa  = playanalysis(text=text, playtype=self.name)
+        self.pa.findBasicPlay()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Penalty Specific
         self.penaltytype  = None
-                
-    def analyze(self, debug=False):
-        self.pa.findBasicPlay()
-        self.yds.findYards()
-        self.result = self.yds.penaltyyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult of {0} play is penaltyyards=={1}".format(self.name, self.result))
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
             
             
         
@@ -162,24 +168,24 @@ class penaltyplay(footballplay):
 class puntplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "punt"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa  = playanalysis(text=text, playtype=self.name)
+        self.pa.findPunt()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.kicker = None
-                
-    def analyze(self, debug=False):
-        self.pa.findPunt()
-        self.yds.findYards()
-        self.result = self.yds.kickingyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
+        
 
         
         
@@ -189,24 +195,23 @@ class puntplay(footballplay):
 class kickoffplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "kickoff"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa  = playanalysis(text=text, playtype=self.name)
+        self.pa.findKickoff()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.kicker = None
-                
-    def analyze(self, debug=False):
-        self.pa.findKickoff()
-        self.yds.findYards()
-        self.result = self.yds.kickingyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
 
         
 ############################################################################################################
@@ -215,24 +220,23 @@ class kickoffplay(footballplay):
 class fieldgoalplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "fieldgoal"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findFieldGoal()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.kicker = None
-                
-    def analyze(self, debug=False):
-        self.pa.findFieldGoal()
-        self.yds.findYards()
-        self.result = self.yds.kickingyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -242,25 +246,24 @@ class fieldgoalplay(footballplay):
 class patplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "pat"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findPAT()
+        self.pa.touchdown = False
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.kicker = None
-                
-    def analyze(self, debug=False):
-        self.pa.findPAT()
-        self.pa.touchdown = False
-        self.yds.findYards()
-        self.result = self.yds.kickingyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
 
             
 
@@ -270,28 +273,24 @@ class patplay(footballplay):
 class returnplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "return"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa  = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-        
-        ## Players
-        self.returner = None
-                
-    def analyze(self, debug=False):
         self.pa.findBasicKicking()
         self.pa.findBasicPlay()
         self.pa.findPassing()
         self.pa.findRushing()
         self.pa.findReturn()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = self.yds.runbackyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -301,21 +300,20 @@ class returnplay(footballplay):
 class downsplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "downs"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = 0
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -325,22 +323,20 @@ class downsplay(footballplay):
 class tbdplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "tbd"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
-        self.pa.findBasicKicking()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = None
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -350,21 +346,20 @@ class tbdplay(footballplay):
 class noplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "no"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = 0
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -374,25 +369,24 @@ class noplay(footballplay):
 class safetyplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "safety"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findBasicPlay()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
 
         ## Safety Specific
         self.rushing = None
         self.passing = None
-                
-    def analyze(self, debug=False):
-        self.pa.findBasicPlay()
-        self.yds.findYards()
-        self.result = self.yds.yards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -402,23 +396,22 @@ class safetyplay(footballplay):
 class timeoutplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "timeout"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
-        self.yds.findYards()
-        self.result = 0
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
         
-
+        self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
+        
+        
         
 ############################################################################################################
 ## End Play
@@ -426,21 +419,20 @@ class timeoutplay(footballplay):
 class endplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "end"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = 0
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -450,21 +442,20 @@ class endplay(footballplay):
 class beginplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "begin"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findBasicPlay()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = 0
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
         
 
         
@@ -474,25 +465,24 @@ class beginplay(footballplay):
 class sackplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "sack"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findBasicPlay()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.quarterback = None
-                
-    def analyze(self, debug=False):
-        self.pa.findBasicPlay()
-        self.yds.findYards()
-        self.result = self.yds.playyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        self.sacker = None
         
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))        
         
 
 
@@ -502,25 +492,23 @@ class sackplay(footballplay):
 class rushingplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "rushing"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findRushing()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Running Back
         self.runningback = None
-                
-    def analyze(self, debug=False):
-        self.pa.findRushing()
-        self.yds.findYards()
-        self.result = self.yds.playyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True])))    
-
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))        
             
 
         
@@ -530,25 +518,24 @@ class rushingplay(footballplay):
 class passingplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "passing"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findPassing()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
         
         ## Players
         self.quarterback = None
         self.receiver    = None
-                
-    def analyze(self, debug=False):
-        self.pa.findPassing()
-        self.yds.findYards()
-        self.result = self.yds.playyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))        
         
 
         
@@ -558,10 +545,18 @@ class passingplay(footballplay):
 class fumbleplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "fumble"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
+        self.pa.findReturn()
+        
         self.yds = playyards(text=text, playtype=self)
+        self.yds.findYards()
 
         ## Fumble Specific
         self.rushing = None
@@ -571,17 +566,8 @@ class fumbleplay(footballplay):
         self.fumbler   = None
         self.recoverer = None
         self.turnover  = None
-                
-    def analyze(self, debug=False):
-        self.pa.findReturn()
-        self.yds.findYards()
-        self.result = self.yds.playyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items() if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))     
         
         
 
@@ -592,18 +578,17 @@ class fumbleplay(footballplay):
 class touchdownplay(footballplay):
     def __init__(self, text, debug=False):
         self.name = "touchdown"
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
+        
         self.text = text
         footballplay.__init__(self, self.name, text, debug)
         self.pa = playanalysis(text=text, playtype=self.name)
-        self.yds = playyards(text=text, playtype=self)
-                
-    def analyze(self, debug=False):
         self.pa.findReturn()
+        
+        self.yds = playyards(text=text, playtype=self)
         self.yds.findYards()
-        self.result = self.yds.playyards
-        self.show(debug)
-
-    def show(self, debug=False):
-        if debug:
-            print("\tResult is {0} play for {1} yards".format(self.name, self.result))
-            #print("\t  Keys: {0}".format(", ".format([k for k,v in self.pa.__dict__.items()]))) # if v is True]))) 
+        
+        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))

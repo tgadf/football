@@ -9,6 +9,10 @@ from time import sleep
 from random import random
 import re
 
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
+
 
 
 class output:

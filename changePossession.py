@@ -1,51 +1,51 @@
 import sys
 from debug import debugclass
-from possession import playpossessionclass, mixedpossession
+from possession import mixedpossession, playpossession
 from summary import playclass
-from footballPlays import *
+from playTypes import puntplay, kickoffplay, fieldgoalplay
+from playTypes import patplay, safetyplay, passingplay, returnplay
+
+
+# create logger
+import logging
+module_logger = logging.getLogger('log.{0}'.format(__name__))
 
 class possessionchangeclass:
-    def __init__(self):
-        self.name = "pcc"
+    def __init__(self, copMap):
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 2*" "
+        
+        self.copMap = copMap
         
         self.dc = debugclass()
+        
+        
+    def flipPossession(self, possession):    
+        try:
+            start = self.copMap[possession.start]
+        except:
+            start = possession.setUnknownStart()
+        return start
     
     
     ################################################################################################################################################################
     ## Change of Possession Plays
     ################################################################################################################################################################
-    def splitChangeOfPossession(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
-        fout=None
-        if fout is not None:
-            f = open(fout, "w")
-            
-        gameData = self.splitKickoff(gameData, players, copMap, debug=debug)
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+    def splitChangeOfPossession(self, gameData):
+        gameData = self.splitKickoff(gameData)
 
-        gameData = self.splitPunt(gameData, players, copMap, debug=debug)
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+        gameData = self.splitPunt(gameData)
 
-        gameData = self.splitInterception(gameData, players, copMap, debug=debug)        
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+        gameData = self.splitInterception(gameData)
 
-        gameData = self.splitSafety(gameData, players, copMap, debug=debug)        
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+        gameData = self.splitSafety(gameData)
 
-        gameData = self.splitFieldGoal(gameData, players, copMap, debug=debug)        
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+        gameData = self.splitFieldGoal(gameData)
 
-        gameData = self.splitFumble(gameData, players, copMap, debug=True)            
-        self.dc.showGame(gameData, fout=fout, debug=debug)
+        gameData = self.splitFumble(gameData)
 
-        gameData = self.splitTouchdown(gameData, players, copMap, debug=debug)        
-        self.dc.showGame(gameData, fout=fout, debug=debug)
-        
-        #gameData = self.analyzePossession(gameData, players, debug)
-        
+        gameData = self.splitTouchdown(gameData)
+                
             
         return gameData
     
@@ -53,10 +53,11 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [kick] + [return + X]
     ######################################################
-    def splitKickoff(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
+    def splitKickoff(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
             
         for idr in range(len(gameData)):
             drivePlays  = gameData[idr].plays
@@ -65,10 +66,8 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if isinstance(playData.play, kickoffplay):
-                    if debug:
-                        print("\tSplitting Kickoff: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Kickoff Play: {1}".format(self.ind, playData.play.text))
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.kickoffplay = False
                     newReturnPlay.pa.touchdown   = playData.play.pa.touchdown
                     newReturnPlay.pa.fumble      = playData.play.pa.fumble
@@ -78,27 +77,24 @@ class possessionchangeclass:
                     playData.play.pa.runback     = False
                     
                     
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)
                     if playData.play.pa.getKey("forced") is not None and not playData.possession.isKnownStart():
-                        if debug:
-                            print("\tUsing previous kickoff data to set possession to {0}".format(playData.play.pa.forced))
+                        self.logger.debug("{0}  Using previous kickoff data to set possession to {1}".format(playData.play.pa.forced))
                         newPossession.start = playData.play.pa.forced
-                        try:
-                            playData.possession.start = copMap[playData.possession.start]
-                        except:
-                            playData.possession.setPreviousStart()
-                        
                         playData.play.pa.forced = False
+                        playData.possession.start = self.flipPossession(newPossession.start)                        
                     else:
-                        try:
-                            newPossession.start = copMap[playData.possession.start]
-                        except:
-                            newPossession.start = playData.possession.setUnknownStart()
-                    if debug:
-                        print("\tKickoff Return: {0} --> {1}".format(playData.possession.start, newPossession.start))
+                        newPossession.start = self.flipPossession(playData.possession)
                     newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    changes.append(idr)
                     break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
+                        
                     
         return gameData
     
@@ -106,12 +102,12 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [punt] + [return + X]
     ######################################################
-    def splitPunt(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
+    def splitPunt(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
             
-        lastPoss = None
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
             drivePlays  = gameData[idr].plays
@@ -124,10 +120,8 @@ class possessionchangeclass:
                     if playData.play.pa.getKey("safety") is True:
                         continue
                     
-                    if debug:
-                        print("\tSplitting Punt: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Punt Play: {1}".format(self.ind, playData.play.text))
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.puntplay = False
                     newReturnPlay.pa.touchdown   = playData.play.pa.touchdown
                     newReturnPlay.pa.fumble      = playData.play.pa.fumble
@@ -137,37 +131,40 @@ class possessionchangeclass:
                     playData.play.pa.runback     = False
                     
                     playData = mixposs.determinePunt(playData, drivePlays, dp, debug=False)
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)
+                    newPossession.start = self.flipPossession(playData.possession)
                     try:
-                        newPossession.start = copMap[playData.possession.start]
+                        newPossession.start = self.copMap[playData.possession.start]
                     except:
                         newPossession.start = playData.possession.setUnknownStart()
-                    if debug:
-                        print("\tPunt Return: {0} --> {1}".format(playData.possession.start, newPossession.start))
                     newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+
+                    changes.append(idr)                    
                     
                     ## Check if the first play of the next drive is unknown
                     try:
                         if not gameData[idr+1].plays[0].possession.isKnownStart():
-                            if debug:
-                                print("Setting 1st play of next drive to {0}".format(newPossession.start))
                             gameData[idr+1].plays[0].possession.start = newPossession.start
                     except:
                         pass
                     break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
-        lastPoss = None
         return gameData
     
         
     ######################################################
     ## Split play into [interception] + [return + X]
     ######################################################
-    def splitInterception(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
+    def splitInterception(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
             
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
@@ -177,10 +174,9 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if isinstance(playData.play, passingplay) and playData.play.pa.getKey("interception"):
-                    if debug:
-                        print("\tSplitting Interception: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Interception Play: {1}".format(self.ind, playData.play.text))
+                    
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.passingplay  = False
                     newReturnPlay.pa.touchdown    = playData.play.pa.touchdown
                     newReturnPlay.pa.fumble       = playData.play.pa.fumble
@@ -190,17 +186,21 @@ class possessionchangeclass:
                     playData.play.pa.fumble       = False
                     playData.play.pa.runback      = False
                     
-                    playData = mixposs.determineInterception(playData, drivePlays, dp, debug=debug)
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)
+                    playData = mixposs.determineInterception(playData, drivePlays, dp)
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)
                     try:
-                        newPossession.start = copMap[playData.possession.start]
+                        newPossession.start = self.copMap[playData.possession.start]
                     except:
                         newPossession.start = playData.possession.setUnknownStart()
-                    if debug:
-                        print("\tInterception Return: {0} --> {1}".format(playData.possession.start, newPossession.start))
                     newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+
+                    changes.append(idr)
                     break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
         return gameData
 
@@ -209,10 +209,11 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [field goal] + [return + X]
     ######################################################
-    def splitFieldGoal(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
+    def splitFieldGoal(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
             
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
@@ -222,10 +223,9 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if isinstance(playData.play, fieldgoalplay) and playData.play.pa.getKey("blocked"):
-                    if debug:
-                        print("\tSplitting Field Goal: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Field Goal Play: {1}".format(self.ind, playData.play.text))
+                    
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.touchdown   = playData.play.pa.touchdown
                     newReturnPlay.pa.fumble      = playData.play.pa.fumble
                     newReturnPlay.pa.runback     = playData.play.pa.runback
@@ -235,25 +235,27 @@ class possessionchangeclass:
                     playData.play.pa.runback     = False
                     
                     
-                    playData = mixposs.determineFieldGoal(playData, drivePlays, dp, debug=debug)
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)
+                    playData = mixposs.determineFieldGoal(playData, drivePlays, dp)
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)
                     try:
-                        newPossession.start = copMap[playData.possession.start]
+                        newPossession.start = self.copMap[playData.possession.start]
                     except:
                         newPossession.start = playData.possession.setUnknownStart()
-                    if debug:
-                        print("\tField Goal Return: {0} --> {1}".format(playData.possession.start, newPossession.start))
                     newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    changes.append(idr)
                     break
                 elif isinstance(playData.play, fieldgoalplay):
+                    changes.append(idr)
                     try:
                         if not gameData[idr+1].plays[0].possession.isKnownStart():
-                            if debug:
-                                print("Setting 1st play of next drive to {0}".format(newPossession.start))
                             gameData[idr+1].plays[0].possession.start = newPossession.start
                     except:
                         pass
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
         return gameData
 
@@ -263,10 +265,11 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [safety] + [return + X]
     ######################################################
-    def splitSafety(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
+    def splitSafety(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
             
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
@@ -276,24 +279,27 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if isinstance(playData.play, safetyplay) or playData.play.pa.getKey("safety"):
-                    if debug:
-                        print("\tSplitting Safety: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Safety Play: {1}".format(self.ind, playData.play.text))
                     playData.play.pa.safetypts = False
 
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.safety    = False
                     newReturnPlay.pa.safetypts = True
 
-                    playData = mixposs.determineSafety(playData, drivePlays, dp, debug=debug)
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)
+                    playData = mixposs.determineSafety(playData, drivePlays, dp)
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)
                     try:
-                        newPossession.start = copMap[playData.possession.start]
+                        newPossession.start = self.copMap[playData.possession.start]
                     except:
                         newPossession.start = playData.possession.setUnknownStart()
                     newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    changes.append(idr)
                     break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
         return gameData
 
@@ -301,11 +307,12 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [fumble] + [return + X]
     ######################################################
-    def splitFumble(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
+    def splitFumble(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
+                        
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
             drivePlays  = gameData[idr].plays
@@ -314,8 +321,7 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if playData.play.pa.getKey("fumble") is True:
-                    if debug:
-                        print("\tSplitting Fumble: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
+                    self.logger.debug("{0}  Fumble Play: {1}".format(self.ind, playData.play.text))
                         
                     lostFumble = True
                     try:
@@ -325,7 +331,6 @@ class possessionchangeclass:
                         lostFumble = True
                     
                     newReturnPlay  = returnplay(text=playData.play.text)
-                    newReturnPlay.analyze()
                     newReturnPlay.pa.touchdown    = playData.play.pa.touchdown
                     newReturnPlay.pa.fumble       = False
                     newReturnPlay.pa.runback      = playData.play.pa.runback
@@ -334,44 +339,45 @@ class possessionchangeclass:
                     playData.play.pa.fumblereturn = False
 
                     playData = mixposs.determineFumble(playData, drivePlays, dp, debug=False)
-                    newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)   
+                    newPossession = playpossession(start=None, end=None, text=playData.play.text)   
                     
 
                         
                     if playData.play.pa.getKey("forced") is not None:
-                        if debug:
-                            print("\tUsing previous fumble data to set possession to {0}".format(playData.play.pa.forced))
+                        self.logger.debug("{0}Using previous fumble data to set possession to {1}".format(self.ind, playData.play.pa.forced))
                         newPossession.start = playData.play.pa.forced
                         try:
-                            playData.possession.start = copMap[playData.possession.start]
+                            playData.possession.start = self.copMap[playData.possession.start]
                         except:
                             playData.possession.setPreviousStart()
                         
                         playData.play.pa.forced = False
                     else:
-                        if debug:
-                            print("\tResult of a lost fumble is {0}".format(lostFumble))
+                        self.logger.debug("{0}Result of a lost fumble is {1}".format(self.ind, lostFumble))
 
 
                         if lostFumble:
                             try:
-                                newPossession.start = copMap[playData.possession.start]
+                                newPossession.start = self.copMap[playData.possession.start]
                             except:
                                 newPossession.setPreviousStart()
                         else:
                             newPossession.start = playData.possession.start
 
                         
-                    if debug:
-                        print("\tOld possession is {0}".format(playData.possession.start))
-                        print("\tNew possession is {0}".format(newPossession.start))
+                    self.logger.debug("{0}Fumble Old possession is {1}".format(self.ind, playData.possession.start))
+                    self.logger.debug("{0}Fumble New possession is {1}".format(self.ind, newPossession.start))
 
-
+                    changes.append(idr)
                     gameData[idr].plays[dp] = playData
                     if lostFumble:
                         newPlayData = playclass(possession=newPossession, start=playData.start, play=newReturnPlay, valid=playData.valid)
-                        drivePlays.insert(dp+1, newPlayData)
+                        drivePlays.insert(dp+1, newPlayData)                        
                         break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
         return gameData
 
@@ -381,11 +387,12 @@ class possessionchangeclass:
     ######################################################
     ## Split play into [TD] + [PAT + X]
     ######################################################
-    def splitTouchdown(self, gameData, players, copMap, debug=False):
-        if debug:
-            fname = sys._getframe().f_code.co_name
-            print("FUNC {0}".format(fname))
-            
+    def splitTouchdown(self, gameData):
+        fname = sys._getframe().f_code.co_name
+        self.logger.debug("\n{0}{1}()".format(self.ind, fname))
+        
+        changes = []
+        
         mixposs = mixedpossession()
         for idr in range(len(gameData)):
             drivePlays  = gameData[idr].plays
@@ -394,46 +401,51 @@ class possessionchangeclass:
                 if playData.valid is not True:
                     continue
                 if playData.play.pa.getKey("touchdown") is True:
-                    if debug:
-                        print("\tSplitting Touchdown: Drive {0}, Play {1}, and Text {2}".format(idr,dp,playData.play.text))
 
                     playData = mixposs.determineTouchdown(playData, drivePlays, dp, debug=False)
                     if sum([isinstance(x.play, patplay) for x in drivePlays]) > 0:
                         break
                     playData.play.pa.addPAT()
                     if playData.play.pa.getKey("addpat") is True:
+                        self.logger.debug("{0}  Touchdown Play: {1}".format(self.ind, playData.play.text))
                         playData.play.pa.addpat = False
                        
                         
                         ## Split Depends on Offense vs Defense PAT
                         if playData.play.pa.getKey("defpat"):
                             newPATPlay  = patplay(text=playData.play.text)
-                            newPATPlay.analyze()
                             newPATPlay.pa.touchdown   = False
                             newPATPlay.pa.runback     = playData.play.pa.runback
                             playData.play.pa.runback  = False
                                      
-                            newPossession = playpossessionclass(start=None, end=None, text=playData.play.text)         
+                            newPossession = playpossession(start=None, end=None, text=playData.play.text)         
                             try:
-                                newPossession.start = copMap[playData.possession.start]
+                                newPossession.start = self.copMap[playData.possession.start]
                             except:
                                 newPossession.start = playData.possession.setUnknownStart()
                         
-                            if debug:
-                                print("\tThis is a DEF PAT with POSS =",newPossession.start)
+                            self.logger.debug("{0}This is a DEF PAT with POSS = {1}".format(self.ind, newPossession.start))
                             newPlayData = playclass(possession=newPossession, start=playData.start, play=newPATPlay, valid=playData.valid)
+                            drivePlays.insert(dp+1, newPlayData)
+                            changes.append(idr)
                         else:
                             newPATPlay  = patplay(text=playData.play.text)
-                            newPATPlay.analyze()
                             newPATPlay.pa.touchdown   = False
                             newPATPlay.pa.runback     = playData.play.pa.runback
-                            
                             playData.play.pa.runback  = False
-                            if debug:
-                                print("\tThis is a regular PAT with POSS =",playData.possession.start)
-
+                                
+                            newPossession = playpossession(start=None, end=None, text=playData.play.text)
+                            newPossession.start = playData.possession.start
+                            
+                            self.logger.debug("{0}This is a REGULAR PAT with POSS = {1}".format(self.ind, newPossession.start))
                             newPlayData = playclass(possession=playData.possession, start=playData.start, play=newPATPlay, valid=playData.valid)
-                        drivePlays.insert(dp+1, newPlayData)
+                            drivePlays.insert(dp+1, newPlayData)
+                            changes.append(idr)
                         break
+
+        self.logger.debug("{0}Found {1} Drives With Splits in {2}()".format(self.ind, len(changes), fname))
+        for idr in set(changes):
+            self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
+                    
                     
         return gameData
