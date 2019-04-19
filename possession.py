@@ -111,6 +111,12 @@ class playpossession:
         self.turnover = False
         self.forced   = None
         
+    def get(self):
+        keys = ["start", "end", "text", "valid", "player", "position"]
+        retval = {k:self.__dict__[k] for k in keys}
+        return retval
+
+        
     def setPlayer(self, name):
         self.player = name
         

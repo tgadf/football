@@ -5,7 +5,7 @@ setup(
   name = 'football',
   py_modules = ['espngames', 'penalty', 'playYards', 'summary', 'playAnalysis',
                 'teamPlayers', 'debug', 'possession', 'playClock',
-                'historical', 'playbyplay', 'playStart',
+                'historical', 'playbyplay', 'playStart', 'analyzeYards',
                 'gamePlayers', 'changePossession', 'downloadESPN',
                 'playTypes', 'driveSummary', 'analyzePossession'],
   version = '0.0.1',

@@ -6,6 +6,11 @@ Created on Mon Apr 15 11:39:51 2019
 @author: tgadfort
 """
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Example with long option names')
+parser.add_argument('--id', action="store", dest="gameID")
+results = parser.parse_args()
 
 from playbyplay import playbyplay
 from historical import historical
@@ -14,10 +19,10 @@ from espngames import season, game, team
 import logging
 
 logger = logging.getLogger('log')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 fh = logging.FileHandler('results.log', mode='w')
-fh.setLevel(logging.DEBUG)
+fh.setLevel(logging.INFO)
 logger.addHandler(fh)
 
 #logging.basicConfig(filename='parsing.log', level=logging.INFO)
@@ -30,12 +35,14 @@ logger.info('done creating a logger message')
 
 pbp = playbyplay()
 pbp.setHistorical(hist)
-pbp.parseGames(gameID=None, test=False, debug=False, verydebug=False)
+gameID = results.gameID
+print("GameID set to [{0}]".format(gameID))
+pbp.parseGames(gameID=gameID, test=False, debug=False, verydebug=False)
 
 
-print(len(pbp.badGames.keys())+len(pbp.goodGames.keys()))
-print(len(pbp.badGames.keys()))
-print(pbp.badGames.keys())
+print("Bad + Good: ",len(pbp.badGames.keys())+len(pbp.goodGames.keys()))
+print("Bad: ",len(pbp.badGames.keys()))
+print("Games: ",pbp.badGames.keys())
 
 
 def writeEdit(gameID, driveNo, playNo, text=None):
@@ -45,8 +52,4 @@ def writeEdit(gameID, driveNo, playNo, text=None):
         print("                newtext = \"{0}\"".format(text))
     else:
         print("                keep = False")
-
-        
-
-writeEdit(401021670, 22, 3, "Cephus Johnson pass intercepted for a TD Alvin Ward Jr. return for 28 yds for a TD, (Tyler Bass KICK)")
 

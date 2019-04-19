@@ -42,6 +42,7 @@ from gamePlayers import gameplayers
 from playStart import playstart
 from playClock import playclock
 from analyzePossession import analyzepossession
+from analyzeYards import analyzeyards
 
 from driveSummary import drivesummary
 
@@ -115,6 +116,7 @@ class playbyplay(espn, output):
         teamSeasonData = seasonData.teams.get(teamID)
         if teamSeasonData is None:
             self.logger.warn("Could not find season data for team ID {0}".format(teamID))
+            self.logger.debug("Available Teams: {0}".format(sorted(seasonData.teams.keys())))
             return None
         teamGameData = [x["Game"] for x in teamSeasonData.games if x["Game"].gameID == gameID]
         try:
@@ -122,6 +124,7 @@ class playbyplay(espn, output):
             self.logger.debug("Found game data for team ID {0} and game ID {1}".format(teamID, gameID))
         except:
             self.logger.warn("Could not find game data for team ID {0} and game ID {1}".format(teamID, gameID))
+            self.logger.debug("Available Teams: {0}".format(sorted(seasonData.teams.keys())))
             return None
         return teamGameData
     
@@ -136,7 +139,7 @@ class playbyplay(espn, output):
     ##
     ################################################################################################################################################
     def parseGames(self, gameID=None, test=False, debug=False, verydebug=False):       
-        self.logger.debug("Parsing Games")
+        self.logger.info("Parsing Games")
         
         
         if self.hist is None:
@@ -170,7 +173,7 @@ class playbyplay(espn, output):
             if year != 2018:
                 continue
                 
-            self.logger.info("Parsing Games from {0}".format(year))
+            self.logger.info(" Parsing Games from {0}".format(year))
             
             yearData           = getFile(ifile)
             seasonData         = self.hist.getSeasonResultsData(year)            
@@ -187,7 +190,7 @@ class playbyplay(espn, output):
                 if gameIdent in self.hist.noGameData or gameIdent in self.poorlyParsed or gameIdent in self.toughParsing:
                     continue
                 
-                self.logger.info("Parsing Game ID {0}".format(gameIdent))
+                self.logger.info("  Parsing Game ID {0}".format(gameIdent))
                 
                 
                 teamsMetaData    = gameData["Teams"]
@@ -211,6 +214,7 @@ class playbyplay(espn, output):
                 awayTeamGameData = self.getTeamGameData(gameIdent, seasonData, awayTeamMetaData)
                 if awayTeamGameData is None:
                     continue
+            
                                 
                 
                 ################################################################################
@@ -224,7 +228,8 @@ class playbyplay(espn, output):
                 ps  = playstart()
                 pc  = playclock()
                 pt  = playtype()
-                ap  = analyzepossession()
+                ap  = analyzepossession(copmap, players)
+                ay  = analyzeyards()
                 pcc = possessionchangeclass(copmap)
                 
                 gameResult = []
@@ -322,52 +327,30 @@ class playbyplay(espn, output):
                 ################################################################################ 
                 dc.showGame(gameResult)
                 
-                ap.continuity(gameResult)
+                gameResult = ap.continuity(gameResult)
                 gameResult = pcc.splitChangeOfPossession(gameResult)
-                ap.continuity(gameResult)
+                gameResult = ap.continuity(gameResult)                
+                gameResult = ap.returns(gameResult)
+                gameResult = ap.pats(gameResult)
+                gameResult = ap.endofgame(gameResult, postDriveScores)
 
-                dc.showGame(gameResult, "Post Continuity")
+                ay.analyze(gameResult)
+
+                scoreResult = ap.gamescore(gameResult, postDriveScores)
                 
-                1/0
-                
-                gameResult = self.analyzePossession(gameResult, players, debug=debug)
-                #gameResult = self.analyzeKickoffs(gameResult, players, copmap, debug=debug)
-                #gameResult = self.analyzeInterceptions(gameResult, players, debug=debug)
-                gameResult = self.analyzePenaltiesAndTOs(gameResult, players, debug=debug)
-                gameResult = self.analyzePossession(gameResult, players, debug=debug)
-                gameResult = self.analyzeReturns(gameResult, players, copmap, debug=debug)
-                gameResult = self.analyzePATs(gameResult, players, copmap, debug=debug)
-                gameResult = self.analyzeEndOfGame(gameResult, players, postDriveScores, debug=debug)
-                
-                dc.showGame(gameResult, debug=debug)
-                
-                scoreResult = self.analyzeGameScore(gameResult, players, homeTeamGameData, awayTeamGameData, debug=True)
                 if scoreResult is False:
                     if gameID is None:
                         self.badGames[gameIdent] = True
                         continue
-                    dc.showGame(gameResult, debug=True)
-                    
-                    saveFile(idata=driveData, ifile="testDriveData.p", debug=True)
-                    saveFile(idata=fieldMap,  ifile="testFieldMap.p",  debug=True)
-                    saveFile(idata=statsData,  ifile="testGameStats.p", debug=True)
-                    saveFile(idata=augmentedStatsData,  ifile="testAugStats.p", debug=True)
-                    
-                    raise ValueError("There was a problem parsing the scores for this game {0}!".format(gameIdent))
-                else:
-                    self.goodGames[gameIdent] = True
-                #self.saveAugmentedStatsData(players, homeTeamMetaData, awayTeamMetaData, debug)
+                    dc.showGame(gameResult, "Score Is Not Corrent")
+                dc.showGame(gameResult, "Good Game")
                 
                 
-                #self.analyzeGameData(gameResult)
-
-
-                    
                 totalGames += 1
                 if debug:
-                    print("Found {0} plays in this game {1}".format(totalPlays, gameID))
+                    self.logger.info("Found {0} plays in this game {1}".format(totalPlays, gameID))
                     
-            print("Found {0} total games for {1}".format(totalGames, ifile))
+            self.logger.info("Found {0} total games for {1}".format(totalGames, ifile))
 
 
     ########################################################################################################
