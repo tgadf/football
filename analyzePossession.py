@@ -8,7 +8,7 @@ Created on Tue Apr 16 19:50:14 2019
 
 from debug import debugclass
 
-from playTypes import returnplay, patplay
+from playTypes import returnplay, patplay, timeoutplay, beginplay, endplay
 #from copy import deepcopy, copy
 
 # create logger
@@ -159,6 +159,265 @@ class analyzepossession:
             self.dc.showDrive(gameData[idr], idr, "Drive {0}".format(idr))
                     
         return gameData
+        
+    
+    ########################################################################################################
+    ## Analyze Next Play Structure
+    ########################################################################################################
+    def nextplay(self, gameData):
+        self.logger.debug("\n{0}".format(2*self.sep))
+        self.logger.debug("{0}Analyzing Next Plays".format(self.ind))
+        
+        for idr,driveData in enumerate(gameData):
+            drivePlays = driveData.plays
+            for ipl,playData in enumerate(drivePlays):
+                currStart  = playData.start
+                currPoss   = playData.possession.start
+                currStartY = currStart.startY
+                currSide   = currStart.side
+
+                prevDiffYards = None
+                nextDiffYards = None
+                
+                if currStartY is None:
+                    playData.setPrevPlay(None)
+                    playData.setNextPlay(None)
+                    playData.setPrevDiffYards(None)
+                    playData.setNextDiffYards(None)
+                    continue
+                
+                if ipl == 0:
+                    prevPlay      = None
+                    prevDiffYards = None
+                else:
+                    prevPlay   = drivePlays[ipl-1]
+                    
+                    prevStart  = prevPlay.start
+                    prevPoss   = prevPlay.possession.start
+                    prevStartY = prevStart.startY
+                    prevSide   = prevStart.side
+                    
+                    if prevStartY is not None:
+                        if currSide == prevSide:
+                            ## Same side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                prevDiffYards = currStartY - prevStartY
+                            else:
+                                ## Yards are going down consistently
+                                prevDiffYards = prevStartY - currStartY
+                        else:
+                            ## Switched side of field
+                            if currSide == currPoss:                                
+                                ## Yards are going up consistently
+                                prevDiffYards = (100-currStartY) - prevStartY
+                                prevDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                prevDiffYards = prevStartY - (100-currStartY)
+                                prevDiffYards *= -1
+                            
+
+                if ipl == len(drivePlays) - 1:
+                    nextPlay      = None
+                    nextDiffYards = None
+                else:
+                    nextPlay   = drivePlays[ipl+1]
+                    
+                    nextStart  = nextPlay.start
+                    nextPoss   = nextPlay.possession.start
+                    nextStartY = nextStart.startY
+                    nextSide   = nextStart.side
+                    
+                    if nextStartY is not None:
+                        if currSide == nextSide:
+                            ## Same side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                nextDiffYards = currStartY - nextStartY
+                                nextDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                nextDiffYards = nextStartY - currStartY
+                                nextDiffYards *= -1
+                        else:
+                            ## Switched side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                nextDiffYards = currStartY - (100-nextStartY)
+                                nextDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                nextDiffYards = (100-nextStartY) - currStartY
+                                nextDiffYards *= -1
+                    
+
+                #print(idr,ipl,'\t',prevPlay,prevDiffYards)
+                playData.setPrevPlay(prevPlay)
+                playData.setNextPlay(nextPlay)
+                
+                playData.setPrevDiffYards(prevDiffYards)
+                playData.setNextDiffYards(nextDiffYards)
+
+        self.logger.debug("{0}Analyzing Next Plays -> Done".format(self.ind))                
+
+        return gameData
+        
+    
+    ########################################################################################################
+    ## Analyze No Play Structure
+    ########################################################################################################
+    def noplays(self, gameData):
+        self.logger.debug("\n{0}".format(2*self.sep))
+        self.logger.debug("{0}Analyzing No Plays".format(self.ind))
+        
+        for idr,driveData in enumerate(gameData):
+            drivePlays = driveData.plays
+            for ipl,playData in enumerate(drivePlays):
+                play = playData.play
+                if isinstance(play, (timeoutplay, beginplay, endplay)):
+                    if ipl < len(drivePlays) - 1:
+                        nextPlay = drivePlays[ipl+1]
+                        playData.start = nextPlay.start.copy()
+                        
+        self.logger.debug("{0}Analyzing No Plays -> Done".format(self.ind))                 
+
+        return gameData
+        
+    
+    ########################################################################################################
+    ## Analyze End-of-Drive Structure
+    ########################################################################################################
+    def endofdrive(self, gameData):
+        self.logger.debug("\n{0}".format(2*self.sep))
+        self.logger.debug("{0}Analyzing End-of-Drive Plays".format(self.ind))
+        
+        for idr,driveData in enumerate(gameData):
+            drivePlays = driveData.plays
+
+            
+            
+            if idr > 0:
+                firstPlayCurrDrive  = drivePlays[0]
+                for i in range(1,len(drivePlays)):
+                    if drivePlays[i].play.text == firstPlayCurrDrive.play.text:
+                        firstPlayCurrDrive = drivePlays[i]
+                    else:
+                        break
+                playData   = firstPlayCurrDrive
+                
+                currStart  = playData.start
+                currPoss   = playData.possession.start
+                currStartY = currStart.startY
+                currSide   = currStart.side
+                
+                prevDrive = gameData[idr-1]
+                lastPlayPrevDrive = prevDrive.plays[-1]
+                for i in range(2,len(prevDrive.plays)+1):
+                    if prevDrive.plays[-1*i].play.text == lastPlayPrevDrive.play.text:
+                        lastPlayPrevDrive = prevDrive.plays[-1*i]
+                    else:
+                        break
+                prevPlay = lastPlayPrevDrive
+                
+                prevStart  = prevPlay.start
+                prevPoss   = prevPlay.possession.start
+                prevStartY = prevStart.startY
+                prevSide   = prevStart.side
+                
+                if all([currStartY,prevStartY]):
+                    prevDiffYards = None
+                    if prevStartY is not None:
+                        if currSide == prevSide:
+                            ## Same side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                prevDiffYards = currStartY - prevStartY
+                                prevDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                prevDiffYards = prevStartY - currStartY
+                                prevDiffYards *= -1
+                        else:
+                            ## Switched side of field
+                            if currSide == currPoss:                                
+                                ## Yards are going up consistently
+                                prevDiffYards = (100-currStartY) - prevStartY
+                            else:
+                                ## Yards are going down consistently
+                                prevDiffYards = prevStartY - (100-currStartY)
+                else:
+                    prevPlay = None
+                    prevDiffYards = None
+                        
+                playData.setPrevPlay(prevPlay)
+                playData.setPrevDiffYards(prevDiffYards)
+                
+                
+            
+            if idr < len(gameData) - 1:
+                lastPlayCurrDrive   = drivePlays[-1]
+                for i in range(2,len(drivePlays)+1):
+                    if drivePlays[-1*i].play.text == lastPlayCurrDrive.play.text:
+                        lastPlayCurrDrive = drivePlays[-1*i]
+                    else:
+                        break
+                playData   = lastPlayCurrDrive
+                
+                currStart  = playData.start
+                currPoss   = playData.possession.start
+                currStartY = currStart.startY
+                currSide   = currStart.side
+                                
+                nextDrive = gameData[idr+1]
+                firstPlayNextDrive  = nextDrive.plays[0]
+                for i in range(1,len(nextDrive.plays)):
+                    if nextDrive.plays[i].play.text == firstPlayNextDrive.play.text:
+                        firstPlayNextDrive = nextDrive.plays[i]
+                    else:
+                        break
+                nextPlay   = firstPlayNextDrive
+                
+                nextStart  = nextPlay.start
+                nextPoss   = nextPlay.possession.start
+                nextStartY = nextStart.startY
+                nextSide   = nextStart.side
+                
+                if all([currStartY,nextStartY]):
+                    nextDiffYards = None
+                    if nextStartY is not None:
+                        if currSide == nextSide:
+                            ## Same side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                nextDiffYards = currStartY - nextStartY
+                                nextDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                nextDiffYards = nextStartY - currStartY
+                                nextDiffYards *= -1
+                        else:
+                            ## Switched side of field
+                            if currSide == currPoss:
+                                ## Yards are going up consistently
+                                nextDiffYards = currStartY - (100-nextStartY)
+                                nextDiffYards *= -1
+                            else:
+                                ## Yards are going down consistently
+                                nextDiffYards = (100-nextStartY) - currStartY
+                                nextDiffYards *= -1                
+                else:
+                    nextPlay = None
+                    nextDiffYards = None
+                            
+                playData.setNextPlay(nextPlay)
+                playData.setNextDiffYards(nextDiffYards)
+                        
+        self.logger.debug("{0}Analyzing End-of-Drive Plays -> Done".format(self.ind))
+
+        return gameData
+                                
+            
 
     
     ########################################################################################################

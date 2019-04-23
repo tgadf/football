@@ -259,6 +259,8 @@ class gameplayers:
     # PAT Players
     ################################################################################################
     def getPATText(self, playText, debug=False):
+        if playText is None:
+            return None
         start = playText.rfind("(")
         end   = playText.rfind(")")
         if start > 0 and end > 0 and start < end:
@@ -283,6 +285,8 @@ class gameplayers:
     # Field Goal Players
     ################################################################################################
     def getFGText(self, playText, debug=False):
+        if playText is None:
+            return None
         ### Field Goal
         kick = ("(fg|FG)")
         num  = "([+-?]\d+|\d+)"  
@@ -337,18 +341,24 @@ class gameplayers:
     # Passing Players
     ################################################################################################
     def getPassingText(self, fname, playText, posnames):
-        retval = None
+        if playText is None:
+            retval = [None,None,None]
+            return retval
+        retval = [None,None,None]
         wrd1 = ("(pass|Pass|PASS)")
         wrd2 = ("(from|From|FROM)")
         num  = "([+-?]\d+|\d+)"  
         dist = ("(yards|yard|Yard|Yds|yds|Yd|yd)")
-        m = re.split("{0}\s{1}\s{2}\s{3}".format(num, dist, wrd1, wrd2), playText)
+        try:
+            m = re.split("{0}\s{1}\s{2}\s{3}".format(num, dist, wrd1, wrd2), playText)
+        except:
+            raise ValueError("Error with passing text: {0}".format(playText))
         if len(m) > 1:
             try:                    
                 text   = " ".join([x.strip() for x in m[-1].split()[:2]])
                 retval = self.getTeam(text, fname, posnames, self.homeTeamPlayers.passers, self.awayTeamPlayers.passers)
             except:
-                retval = None
+                retval = [None,None,None]
         return retval
                 
     
@@ -385,6 +395,8 @@ class gameplayers:
     # Running Players
     ################################################################################################
     def getRunningText(self, fname, playText, posnames):
+        if playText is None:
+            return [None,None,None]
         retval = None
         run  = ("(run|Run|RUN)")
         num  = "([+-?]\d+|\d+)"  
@@ -462,14 +474,14 @@ class gameplayers:
     def getDefenseTeam(self, playText, debug=False):
         fname = sys._getframe().f_code.co_name
         self.logger.debug("{0}{1}({2})".format(self.ind, fname, playText))
-        return None
+        return [None,None,None]
         pos = self.findPlayerTeam(playText, self.homeTeamPlayers.defense)
         if pos is not None:
-            return self.homeTeamName
+            return [None,None,None]
 
         pos = self.findPlayerTeam(playText, self.awayTeamPlayers.defense)
         if pos is not None:
-            return self.awayTeamName
+            return [None,None,None]
         
         self.logger.debug("{0}{1}({2}) --> {3}".format(self.ind, fname, playText, retval))
-        return None
+        return [None,None,None]

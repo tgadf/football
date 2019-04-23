@@ -16,6 +16,15 @@ class playyards:
         
         self.yards = None
         
+        assert self.findKickoffYards("Joseph Bulovas kickoff for 63 yds , Hassan Hall return for 61 yds to the Alab 37") == 63, "Should be 63"
+        assert self.findKickReturnYards("Joseph Bulovas kickoff for 63 yds , Hassan Hall return for 61 yds to the Alab 37") == 61, "Should be 61"
+        assert self.findKickoffYards("Evan O'Hara kickoff for 65 yds for a touchback") == 65, "Should be 65"
+        assert self.findKickReturnYards("Evan O'Hara kickoff for 65 yds for a touchback") == 25, "Should be 25"
+        assert self.findPuntYards("Skyler DeLong punt for 32 yds, downed at the Lvile 15") == 32, "Should be 32"
+        assert self.findKickReturnYards("Skyler DeLong punt for 32 yds, downed at the Lvile 15") == 0, "Should be 0"
+        assert self.findPenaltyYards("ALABAMA Penalty, Delay of Game (-5 Yards) to the Lvile 9") == -5, "Should be -5"
+        
+        
     def setPlay(self, text):
         self.text = text
         
@@ -52,7 +61,6 @@ class playyards:
         sign   = 1
         result = None
         
-        self.findPenaltyYards(debug)
         self.findKickingYards(debug)
         self.findReturnYards(debug)
         self.findPlayYards(debug)
@@ -64,7 +72,7 @@ class playyards:
                     print("Could not find yards in this play")
                 self.yards = None
             else:
-                raise ValueError("Could not find any yards for this play: [{0}]".format(self.text))
+                self.yards = None
         else:
             if any([isinstance(x, int) for x in yards]):
                 self.yards = sum([x for x in yards if (x is not None) and (isinstance(x, int))])
@@ -127,6 +135,7 @@ class playyards:
                 result  = results[1:]
                 if sign == "loss":
                     sign = -1
+                    result = [int(result[0])*sign]
                 if debug:
                     print("\t\t===> {0} ({1})".format(result, sign))
         
@@ -166,53 +175,104 @@ class playyards:
         
         
 
+        
+        
+    ############################################################################################################
+    ## Find Punt Yardage
+    ############################################################################################################
+    def findPuntYards(self, text):
+        kick = ("(punt|Punt|PUNT)")
+        prep = ("(for|For|FOR|or|Or|OR)")
+        num  = "([+-?]\d+|\d+)"  
+        dist = ("(yard|Yard|YARD|yd|Yd|YD)")
+        
+        m = re.search(r"{0}\s{1}\s{2}\s{3}".format(kick, prep, num, dist), text)
+        if m is not None:
+            result = m.groups(0)
+            yards  = int(result[2])
+            return yards
+        return None
+        
+        
+    ############################################################################################################
+    ## Find Kickoff Yardage
+    ############################################################################################################
+    def findKickoffYards(self, text):
+        kick = ("(kickoff|Kickoff|KICKOFF)")
+        prep = ("(for|For|FOR)")
+        num  = "([+-?]\d+|\d+)"  
+        dist = ("(yard|Yard|YARD|yd|Yd|YD)")
+        
+        m = re.search(r"{0}\s{1}\s{2}\s{3}".format(kick, prep, num, dist), text)
+        if m is not None:
+            result = m.groups(0)
+            yards  = int(result[2])
+            return yards
+        return None
+        
+        
+    ############################################################################################################
+    ## Find Kick Return Yardage
+    ############################################################################################################
+    def findKickReturnYards(self, text):
+        kick = "(return|Return|RETURN|returns|Returns|RETURNS)"
+        prep = "(for|For|FOR)"
+        num  = "([+-?]\d+|\d+)"  
+        dist = "(yard|Yard|YARD|yd|Yd|YD)"
+
+        if "fair catch" in text:
+            return 0
+        
+        if "downed at the" in text:
+            return 0
+        
+        if "no gain" in text:
+            return 0
+        
+        if "touchback" in text:
+            return 25
+        
+        m = re.search(r"{0}\s{1}\s{2}\s{3}".format(kick, prep, num, dist), text)
+        if m is not None:
+            result = m.groups(0)
+            yards  = int(result[2])
+            return yards
+        
+        if "return" not in text:
+            return 0
+        
+        return None
+
+
     ############################################################################################################
     ## Find Penalty Yardage
     ############################################################################################################
-    def findPenaltyYards(self, debug=False):
-        kick = ("(punt|kickoff)")
-        prep = ("(or|for)")
-        num  = "([+-?]\d+|\d+)"  
-        dist = ("(yards|yard|Yds|yds|Yd|yd)")
+    def findPenaltyYards(self, text):
+        num    = "([+-?]\d+|\d+)"  
+        dist   = "(yard|Yard|YARD|yd|Yd|YD)"
         
-        yards = None
+        pos  = text.find("(")
+        if pos > 0:
+            text = text[pos:text.find(")")]
+            m = re.search(r"{0}\s{1}".format(num, dist), text)
+            if m is not None:
+                result = m.groups(0)
+                yards  = int(result[0])
+                return yards
+
+        if "declined" in text:
+            return 0
         
-        ## False Start
-        if sum([x in self.text for x in ["False Start"]]) > 0:
-            yards = -5
-            
-        ## Offensive Pass Interference
-        if sum([x in self.text for x in ["Offensive Pass Interference"]]) > 0:
-            yards = "NET"
-            
-        ## Offensive Pass Interference
-        if sum([x in self.text for x in ["Defensive Pass Interference"]]) > 0:
-            yards = "NET"
-            
-        ## Offensive Pass Interference
-        if sum([x in self.text for x in ["Illegal Block"]]) > 0:
-            yards = "NET"
-
-
-        if yards is None:
-            yards = "IGN"
+        return None
         
-            
-
-        self.penaltyyards = self.makeYards(yards)
-        self.show(self.runbackyards, "Penalty", debug=debug)
 
 
         
     ############################################################################################################
     ## Find Kicking Yardage
     ############################################################################################################
-    def findKickingYards(self, debug=False):
-        kick = ("(punt|kickoff)")
-        prep = ("(or|for)")
-        num  = "([+-?]\d+|\d+)"  
-        dist = ("(yards|yard|Yds|yds|Yd|yd)")
-        
+    def findKickingYards(self, text):
+        return
         yards = None
         
         if yards is None:

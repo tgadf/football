@@ -1,4 +1,4 @@
-from playTypes import penaltyplay, puntplay, kickoffplay, fieldgoalplay, beginplay
+from playTypes import noplay, puntplay, kickoffplay, fieldgoalplay, beginplay
 from playTypes import patplay, tbdplay, safetyplay, fumbleplay, touchdownplay
 from playTypes import timeoutplay, endplay, sackplay, rushingplay, passingplay
 
@@ -149,6 +149,9 @@ class possessionfromplayer:
         self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
         self.ind    = 4*" "
         
+        if players is None:
+            raise ValueError("Players is NONE!!!")
+        
         self.name = "possession"
         self.players = players
         
@@ -159,9 +162,10 @@ class possessionfromplayer:
     ##
     ########################################################################################################
     def determinePossession(self, play):
+        if play is None:
+            raise ValueError("Play is NONE in determinePossession()")
+            
         txt   = play.text
-        
-        self.logger.debug("{0}Determine Possession for [{1}] play with text [{2}]".format(self.ind, play.name, play.text))
 
         
         ## Check for TD
@@ -178,7 +182,13 @@ class possessionfromplayer:
         poss     = playpossession(start=None, end=None, text=txt)
         name     = None
         position = None
+            
         
+        self.logger.debug("{0}Determine Possession for [{1}] play with text [{2}]".format(self.ind, play.name, str(txt)))
+        if txt is None:
+            poss.setPreviousStart()
+            return poss
+
 
         ## Kickoff
         if isinstance(play, kickoffplay):
@@ -205,6 +215,7 @@ class possessionfromplayer:
 
         ## Passing
         if isinstance(play, passingplay):
+            print(play,txt)
             poss.start,name,position = self.players.getPassingTeam(txt)
             if poss.start is None:
                 poss.start,name,position = self.players.getReceivingTeam(txt)
@@ -244,13 +255,8 @@ class possessionfromplayer:
             if poss.start is None:
                 poss.setPreviousStart()
 
-        ## Penalty/Timeout/End
-        if isinstance(play, penaltyplay):
-            poss.setPreviousStart()
-            poss.valid = False
-            
         ## Empty play
-        if isinstance(play, (beginplay, endplay, timeoutplay)):
+        if isinstance(play, (noplay, beginplay, endplay, timeoutplay)):
             poss.setPreviousStart()
             poss.valid=False
                      

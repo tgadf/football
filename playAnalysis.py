@@ -358,6 +358,7 @@ class playanalysis:
         self.missed    = False
         self.runback   = False
         self.touchback = False
+        self.outofbounds = False
         
         
         if sum([x in self.text for x in self.ptc.getRunback()]) > 0:

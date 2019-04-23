@@ -7,6 +7,7 @@ setup(
                 'teamPlayers', 'debug', 'possession', 'playClock',
                 'historical', 'playbyplay', 'playStart', 'analyzeYards',
                 'gamePlayers', 'changePossession', 'downloadESPN',
+                'analyzeKicking',
                 'playTypes', 'driveSummary', 'analyzePossession'],
   version = '0.0.1',
   description = 'Football Game Parsing Package',

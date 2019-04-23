@@ -16,7 +16,7 @@ from datetime import timedelta
 from collections import Counter
 
 
-from footballPlays import playtype, footballplay, penaltyplay, puntplay, kickoffplay, fieldgoalplay
+from footballPlays import playtype, footballplay, puntplay, kickoffplay, fieldgoalplay
 from footballPlays import patplay, returnplay, downsplay, tbdplay, noplay, safetyplay
 from footballPlays import timeoutplay, endplay, beginplay, sackplay, rushingplay, passingplay, fumbleplay, touchdownplay
 

@@ -28,21 +28,50 @@ class playstartclass:
         self.quarter       = None
         self.gameclock     = None
         self.distToEndZone = None
+        self.distFromOwnEndZone = None
         
         self.logger.debug("{0}Play Start: Down [{1}], ToGo [{2}], and Line [{3}]".format(self.ind,self.down,self.togo,self.startY))
+        
+    def copy(self):
+        psc = playstartclass(self.down, self.togo, self.startY, self.side, self.extra)
+        psc.quarter = self.quarter
+        psc.gameclock = self.gameclock
+        psc.distToEndZone = self.distToEndZone
+        psc.distFromOwnEndZone = self.distFromOwnEndZone
+        return psc
+    
         
     def get(self):
         keys = ["down", "togo", "startY", "side", "extra", "quarter", "gameclock", "distToEndZone"]
         retval = {k:self.__dict__[k] for k in keys}
         return retval
 
+    def setYards(self, poss):
+        if self.startY is None:
+            self.setDistToEndZone(None)
+            return
+        
+        if poss == self.side:
+            dist = 100 - self.startY
+            self.setDistToEndZone(dist)
+        else:
+            dist = self.startY
+            self.setDistToEndZone(dist)
+        
         
     def setStartY(self, startY):
         self.startY = startY
         
     def setDistToEndZone(self, dist):
         self.distToEndZone = dist
-        
+        try:
+            self.distFromOwnEndZone = 100 - dist
+        except:
+            self.distFromOwnEndZone = None
+            
+    def getEndZoneDist(self):
+        return self.distToEndZone
+                
     def setQuarter(self, quarter):
         self.quarter = quarter
         

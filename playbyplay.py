@@ -9,21 +9,8 @@
 import sys
 print("Python: {0}".format(sys.version))
 
-from fsUtils import setFile
-from ioUtils import getFile, saveFile
-from timeUtils import clock, elapsed
-from fileUtils import getBaseFilename, getBasename, getDirname
-from webUtils import getWebData, getHTML
-from timeUtils import printDateTime, getDateTime, addMonths
-from searchUtils import findExt
-from time import sleep
-from random import random
 import sys
-import re
-from datetime import timedelta
-from collections import Counter
 
-from historical import historical
 from espngames import espn, output
 
 import datetime as dt
@@ -31,18 +18,22 @@ start = dt.datetime.now()
 
 
 
-from summary import playclass
 from playResult import playtextclass
 from possession import possessionfromplayer
 from playTypes import playtype
+
+from fileUtils import getBaseFilename
+from ioUtils import getFile
 
 from debug import debugclass
 from changePossession import possessionchangeclass
 from gamePlayers import gameplayers
 from playStart import playstart
 from playClock import playclock
+from playTypes import playsummary
 from analyzePossession import analyzepossession
 from analyzeYards import analyzeyards
+from analyzeKicking import analyzekicking
 
 from driveSummary import drivesummary
 
@@ -230,6 +221,7 @@ class playbyplay(espn, output):
                 pt  = playtype()
                 ap  = analyzepossession(copmap, players)
                 ay  = analyzeyards()
+                ak  = analyzekicking()
                 pcc = possessionchangeclass(copmap)
                 
                 gameResult = []
@@ -289,7 +281,7 @@ class playbyplay(espn, output):
                 
                             
                         ### Result of play
-                        playResult = playclass(possession=playPossession, start=startVals, play=play, valid=play.valid)
+                        playResult = playsummary(possession=playPossession, start=startVals, play=play, valid=play.valid)
 
 
                         ### Save and move on                        
@@ -329,12 +321,24 @@ class playbyplay(espn, output):
                 
                 gameResult = ap.continuity(gameResult)
                 gameResult = pcc.splitChangeOfPossession(gameResult)
+                
                 gameResult = ap.continuity(gameResult)                
                 gameResult = ap.returns(gameResult)
                 gameResult = ap.pats(gameResult)
                 gameResult = ap.endofgame(gameResult, postDriveScores)
+                gameResult = ap.noplays(gameResult)
+                gameResult = ap.nextplay(gameResult)
+                gameResult = ap.endofdrive(gameResult)
+                
+                
 
-                ay.analyze(gameResult)
+                dc.showGame(gameResult, "Game")
+                gameResult = ay.analyze(gameResult)
+                
+                
+                gameResult = ak.kickoffs(gameResult)
+                gameResult = ak.returns(gameResult)
+                
 
                 scoreResult = ap.gamescore(gameResult, postDriveScores)
                 
@@ -448,7 +452,7 @@ class playbyplay(espn, output):
             play.analyze(debug=debug)
             playPossession = possData.determinePossession(play, debug=debug)
             playStart = prevPlay.start
-            playResult = playclass(possession=playPossession, start=playStart, play=play, valid=True)
+            playResult = playsummary(possession=playPossession, start=playStart, play=play, valid=True)
             if debug:
                 print("Adding play [{0}] for team [{1}] with text [{2}]".format(play.name, playPossession.start, text))
             return playResult

@@ -8,38 +8,74 @@ class debugclass:
         self.ind    = 0*" "
         self.sep    = "======================================================"
         
-        
-    def showPlay(self, drivePlay, driveNo=None, playNo=None):
-        play       = drivePlay.play
-        possession = drivePlay.possession
-        valid      = play.valid
-        text       = possession.text
-        keys       = play.pa.getKeys()
-        if valid is False:
-            self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
-                                                                                         "",
-                                                                                         str(play.name),
-                                                                                         "",
-                                                                                         "",
-                                                                                         str(keys),str(text)))
-            return
-            
-        self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format(str(driveNo),str(playNo),
-                                                                                     str(possession.start),
-                                                                                     str(play.name),
-                                                                                     str(possession.player),
-                                                                                     str(possession.position),
-                                                                                     str(keys),str(text)))
-
+        self.spacing = {"Drv": 5, "Ply": 5, "Poss": 5, "Dwn": 5, "Yds": 5, "Line": 10, "Play": 10, "Player": 10, "Keys": 40, "Text": 40}
+        self.naming  = []
+        for key,value in self.spacing.items():
+            self.naming.append("{0}: <{1}".format(len(self.naming), value))  
+        self.naming = "{"+"}{".join(self.naming)+"}"
 
 
     def header(self, fout=None):
-        self.logger.debug("{0: <5}{1: <5}\t{2}\t{3: <15}{4: <20}{5: <5}{6: <40}{7}".format("Drv","Ply",
-                                                                                     "Poss",
-                                                                                     "Type",
-                                                                                     "Player",
-                                                                                     "Position",
-                                                                                     "Keys","Text"))
+        self.logger.debug("{0: <5}{1: <5}{2: <5}{3: <5}{4: <5}{5: <10}{6: <6}{7: <6}{8: <12}{9: <25}{10: <40}{11: <40}".format(
+                "Drv", "Ply", "Poss", "Dwn", "ToGo", "Line", "Next", "Yards", "Play", "Player", "Keys", "Text"))
+
+        
+    def showPlay(self, drivePlay, driveNo=None, playNo=None):
+        play       = drivePlay.play
+        name       = play.name
+        possession = drivePlay.possession
+        poss       = possession.start
+        position   = possession.position
+        if position is None:
+            position = "?"
+        player     = possession.player
+        if player is None:
+            player = "?"
+        player     = "-".join([position, player])
+        start      = drivePlay.start
+        down       = start.down
+        if down is None:
+            down = "-"
+        yds        = start.togo
+        if yds is None:
+            yds = "-"
+        startY     = start.startY
+        if startY is None:
+            startY = "?"
+        side       = start.side
+        if side is None:
+            side = "?"
+        line       = "-".join([str(startY), str(side)])
+        text       = possession.text
+        keys       = ",".join(play.pa.getKeys())
+        
+        resultyards = play.yds.yards
+        if resultyards is None:
+            resultyards = "?"
+        
+        nextDiffYards = drivePlay.nextDiffYards
+        if nextDiffYards is None:
+            nextDiffYards = "-"
+        prevDiffYards = drivePlay.prevDiffYards
+        if prevDiffYards is None:
+            prevDiffYards = "-"
+        
+        
+        
+        data = {"Drv": str(driveNo), "Ply": str(playNo), "Poss": poss, "Dwn": str(down), "Yds": str(yds),
+                "Prev": str(prevDiffYards), "Next": str(nextDiffYards), "Result": resultyards,
+                "Line": line, "Play": str(name), "Player": str(player), "Keys": keys, "Text": str(text)}
+        
+        naming  = []
+        for key,value in self.spacing.items():
+            naming.append("{0}: <{1}".format(key, value))
+        naming = "{"+"}{".join(naming)+"}"
+        
+        self.logger.debug("{0: <5}{1: <5}{2: <5}{3: <5}{4: <5}{5: <10}{6: <6}{7: <6}{8: <12}{9: <25}{10: <40}{11: <40}".format(
+                data["Drv"],data["Ply"], data["Poss"], data["Dwn"], data["Yds"], data["Line"], data["Next"], data["Result"], data["Play"], data["Player"], data["Keys"], data["Text"]))
+
+
+
 
         
     def compDrive(self, driveData, prevDriveData, driveNo=None, expl=None):

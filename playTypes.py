@@ -6,6 +6,37 @@ import logging
 module_logger = logging.getLogger('log.{0}'.format(__name__))
 
 
+
+ 
+############################################################################################################
+## Play Class
+############################################################################################################
+class playsummary:
+    def __init__(self, possession, start, play, valid):
+        self.possession = possession
+        self.start      = start
+        self.play       = play
+        self.valid      = valid
+        
+        self.nextPlay      = None
+        self.nextDiffYards = None
+        self.prevPlay      = None
+        self.prevDiffYards = None
+        
+    def setNextPlay(self, nextPlay):
+        self.nextPlay = nextPlay
+        
+    def setNextDiffYards(self, nextDiffYards):
+        self.nextDiffYards = nextDiffYards
+        
+    def setPrevPlay(self, prevPlay):
+        self.prevPlay = prevPlay
+        
+    def setPrevDiffYards(self, prevDiffYards):
+        self.prevDiffYards = prevDiffYards
+        
+
+
 ############################################################################################################
 ### ## Football Play Type
 ############################################################################################################
@@ -52,8 +83,6 @@ class playtype:
                                           "Interception Return", "Interception", "INTERCEPTION"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
                 play = touchdownplay(playText)
-            elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-                play = penaltyplay(playText)
             elif sum([x in playSubText for x in ["Pass run"]]) > 0:
                 play = rushingplay(playText)
             else:
@@ -61,12 +90,8 @@ class playtype:
         elif sum([x in playSubText for x in [" rush ", " rushed ", " Rush ", " Rushed ", " scramble", " rush,", " run ", " Run"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
                 play = touchdownplay(playText)
-            elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-                play = penaltyplay(playText)
             else:
                 play = rushingplay(playText)
-        elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
-            play = penaltyplay(playText)
         elif sum([x in playSubText for x in ["fumble", "Fumble", " fumbled ", " Fumble ", " Fumbled ", "FUMBLE"]]) > 0:
             if sum([x in playSubText for x in ["touchdown", "Touchdown", "TOUCHDOWN"]]) > 0:
                 play = touchdownplay(playText)
@@ -79,6 +104,8 @@ class playtype:
         elif sum([x in playSubText for x in ["extra point", "Extra Point", "Extra point", "PAT", "2 point", "2 Point", "two-point", "Two-point", "Two-Point"]]) > 0:
             play = patplay(playText)
         elif sum([x in playSubText for x in ["NO PLAY", "No Play"]]) > 0:
+            play = noplay(playText)
+        elif sum([x in playSubText for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
             play = noplay(playText)
         elif len(playText) > 1:
             play = tbdplay(playText)
@@ -96,6 +123,26 @@ class playtype:
             
     def getPlayText(self):
         return self.playtext
+
+
+
+############################################################################################################
+## Penalty Play
+############################################################################################################
+class penalty:
+    def __init__(self, text):
+        self.name = self.__class__
+        
+        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
+        self.ind    = 6*" "
+        
+        self.text      = text
+        self.isPenalty = False
+        if sum([x in text for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
+            self.isPenalty = True
+        
+        self.logger.debug("{0}Penalty Status: {1}".format(self.ind, self.isPenalty))
+        
                         
 
 ############################################################################################################
@@ -124,6 +171,8 @@ class footballplay:
         self.newdowns = None
         
         self.possession = None
+        
+        self.penalty = penalty(text)
 
         self.printType(debug)
         
@@ -133,32 +182,6 @@ class footballplay:
     def printType(self, debug=False):
         if debug:
             print("===> {0} Play".format(self.playtype))
-
-
-
-############################################################################################################
-## Penalty Play
-############################################################################################################
-class penaltyplay(footballplay):
-    def __init__(self, text, debug=False):
-        self.name = "penalty"
-        
-        self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
-        self.ind    = 6*" "
-        self.logger.debug("{0}Creating [{1}] Play from text [{2}]".format(self.ind, self.name, text))
-        
-        self.text = text
-        footballplay.__init__(self, self.name, text, debug)
-        self.pa  = playanalysis(text=text, playtype=self.name)
-        self.pa.findBasicPlay()
-        
-        self.yds = playyards(text=text, playtype=self)
-        self.yds.findYards()
-        
-        ## Penalty Specific
-        self.penaltytype  = None
-        
-        self.logger.debug("{0}Result of {1} play ==> Keys: {2}".format(self.ind, self.name, self.pa.getKeys()))
             
             
         

@@ -19,10 +19,10 @@ from espngames import season, game, team
 import logging
 
 logger = logging.getLogger('log')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 fh = logging.FileHandler('results.log', mode='w')
-fh.setLevel(logging.INFO)
+fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
 #logging.basicConfig(filename='parsing.log', level=logging.INFO)
