@@ -20,19 +20,45 @@ module_logger = logging.getLogger('log.{0}'.format(__name__))
 ## Drive Class
 ############################################################################################################
 class driveclass:
-    def __init__(self, headline, detail, possession, postdrivehomescore, postdriveawayscore, plays=None):
+    def __init__(self, headline, detail, possession, postdrivehomescore, postdriveawayscore, plays=None, text={}):
         self.logger = logging.getLogger('log.{0}.{1}'.format(__name__, self.__class__))
         self.ind    = 6*" "
         
-        self.headline = headline
-        self.detail   = detail
-        self.possession = possession
+        self.headline           = headline
+        self.detail             = detail
+        self.possession         = possession
         self.postdrivehomescore = postdrivehomescore
         self.postdriveawayscore = postdriveawayscore
-        self.plays = plays
+        self.plays              = plays
+        
+        try:
+            self.headlineText = text.get("Headline")[0]
+        except:
+            self.headlineText = str(None)
+            
+        try:
+            self.detailText   = text.get("Detail")[0]
+        except:
+            self.detailText   = str(None)
+
         
     def setPlays(self, plays):
         self.plays = plays
+        
+    def getHeadlineText(self):
+        return self.headlineText
+        
+    def getDetailText(self):
+        return self.detailText
+    
+    def getSummaryText(self):
+        plays    = self.detail.plays
+        yards    = self.detail.yards
+        headline = self.headline
+        
+        retval   = "{0: <5}{1: <5}{2: <25}{3: <25}{4: <25}".format(plays, yards, headline, self.headlineText, self.detailText)
+        return retval
+        
 
 
 ############################################################################################################
@@ -72,10 +98,12 @@ class drivesummary:
         headline = drive.get('Headline')
         if headline is None:
             raise ValueError("No Headline in drive dict")
+        self.headlineText = headline
 
         detail = drive.get('Detail')
         if detail is None:
             raise ValueError("No Detail in drive dict")
+        self.detailText = detail
 
         possession = drive.get('Posession')
         if possession is None:
@@ -109,8 +137,17 @@ class drivesummary:
         
         self.logger.debug("{0}Drive Summary: [{1} - {2}]  {3}".format(self.ind, self.awayscore, self.homescore, headline))
                     
-        self.fullDrive = driveclass(headline=headline, detail=detail, possession=possession,
-                                    postdrivehomescore=homescore, postdriveawayscore=awayscore)    
+        self.fullDrive = driveclass(headline=self.headline, detail=self.detail, possession=self.possession,
+                                    postdrivehomescore=self.homescore, postdriveawayscore=self.awayscore,
+                                    text={"Headline": self.headlineText, "Detail": self.detailText})
+        
+        
+        
+    def getHeadline(self):
+        return self.headlineText
+    
+    def getDetail(self):
+        return self.detailText
     
     
     def getPostDriveScore(self):

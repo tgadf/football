@@ -9,6 +9,7 @@ Created on Mon Apr 22 18:29:44 2019
 from debug import debugclass
 
 from playTypes import returnplay, kickoffplay, patplay, playtype, playsummary
+from playTypes import penalty
 from possession import playpossession
 #from copy import deepcopy, copy
 
@@ -108,8 +109,12 @@ class analyzekicking:
                 kickplay.start.startY = 35
                 self.logger.debug("{0}  Kickoff was regular and setting start to 35 yard line".format(self.ind))
             else:
-                kickplay.start.startY = startLine
-                self.logger.debug("{0}  Kickoff was irregular and setting start to {1} yard line".format(self.ind, startLine))
+                if kickplay.play.penalty.isPenalty is True:
+                    kickplay.start.startY = 35
+                    self.logger.debug("{0}  Kickoff included a penalty. Assuming it was a regular kickoff and setting start to 35 yard line".format(self.ind))
+                else:
+                    kickplay.start.startY = startLine
+                    self.logger.debug("{0}  Kickoff was irregular and setting start to {1} yard line".format(self.ind, startLine))
             kickplay.start.setYards(kickplay.possession.start)
         else:
             returnYards = retplay.play.yds.yards
@@ -199,15 +204,19 @@ class analyzekicking:
             
             if kickplay.play.pa.getKey("outofbounds") is True:
                 retplay.play.yds.yards = None
-                oobplay = self.pt.getPlay("Penalty: Kickoff Out of Bounds")                
+                oobplay = self.pt.getPlay("No Play")
+                oobplay.text = "Penalty: Kickoff Out of Bounds"
+                oobplay.penalty = penalty(oobplay.text)
                 oobposs = playpossession(start=kickplay.possession.start, end=None, text=oobplay.text)
                 oobstart = kickplay.start.copy()
                 oobstart.startY = 35
-                playResult = playsummary(possession=oobposs, start=oobstart, play=oobplay, valid=True)       
+                playResult = playsummary(possession=oobposs, start=oobstart, play=oobplay, valid=True)
                 playResult.start.setYards(playResult.possession.start)                
                 drivePlays.insert(1, playResult)
                 
-                noretplay = self.pt.getPlay("Post Penalty: Starting at 35 yard line")
+                                
+                noretplay = self.pt.getPlay("")
+                noretplay.text = "Post Penalty: Starting at 35 yard line"
                 noretplay.yds.yards = 0
                 noretposs = playpossession(start=retplay.possession.start, end=None, text=noretplay.text)
                 noretstart = retplay.start.copy()

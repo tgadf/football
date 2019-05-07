@@ -85,8 +85,11 @@ class possessionchangeclass:
                         playData.possession.start = self.flipPossession(newPossession.start)                        
                     else:
                         newPossession.start = self.flipPossession(playData.possession)
-                    newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
+                    newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)                    
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    newReturnPlay.connectedPlays.append(playData)
+                    playData.play.connectedPlays.append(newReturnPlay)
                     
                     changes.append(idr)
                     break
@@ -139,6 +142,9 @@ class possessionchangeclass:
                         newPossession.start = playData.possession.setUnknownStart()
                     newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    newReturnPlay.connectedPlays.append(playData)
+                    playData.play.connectedPlays.append(newReturnPlay)
 
                     changes.append(idr)                    
                     
@@ -194,6 +200,9 @@ class possessionchangeclass:
                         newPossession.start = playData.possession.setUnknownStart()
                     newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    newReturnPlay.connectedPlays.append(playData)
+                    playData.play.connectedPlays.append(newReturnPlay)
 
                     changes.append(idr)
                     break
@@ -243,6 +252,10 @@ class possessionchangeclass:
                         newPossession.start = playData.possession.setUnknownStart()
                     newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    newReturnPlay.connectedPlays.append(playData)
+                    playData.connectedPlays.append(newReturnPlay)
+                    
                     changes.append(idr)
                     break
                 elif isinstance(playData.play, fieldgoalplay):
@@ -294,6 +307,10 @@ class possessionchangeclass:
                         newPossession.start = playData.possession.setUnknownStart()
                     newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
                     drivePlays.insert(dp+1, newPlayData)
+                    
+                    newReturnPlay.connectedPlays.append(playData)
+                    playData.play.connectedPlays.append(newReturnPlay)
+                    
                     changes.append(idr)
                     break
 
@@ -372,6 +389,10 @@ class possessionchangeclass:
                     gameData[idr].plays[dp] = playData
                     if lostFumble:
                         newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newReturnPlay, valid=playData.valid)
+                        
+                        newReturnPlay.connectedPlays.append(playData)
+                        playData.play.connectedPlays.append(newReturnPlay)
+                    
                         drivePlays.insert(dp+1, newPlayData)                        
                         break
 
@@ -426,6 +447,10 @@ class possessionchangeclass:
                         
                             self.logger.debug("{0}This is a DEF PAT with POSS = {1}".format(self.ind, newPossession.start))
                             newPlayData = playsummary(possession=newPossession, start=playData.start.copy(), play=newPATPlay, valid=playData.valid)
+                    
+                            newPATPlay.connectedPlays.append(playData)
+                            playData.play.connectedPlays.append(newPATPlay)
+                    
                             drivePlays.insert(dp+1, newPlayData)
                             changes.append(idr)
                         else:
@@ -440,6 +465,10 @@ class possessionchangeclass:
                             self.logger.debug("{0}This is a REGULAR PAT with POSS = {1}".format(self.ind, newPossession.start))
                             newPlayData = playsummary(possession=playData.possession, start=playData.start.copy(), play=newPATPlay, valid=playData.valid)
                             drivePlays.insert(dp+1, newPlayData)
+                    
+                            newPATPlay.connectedPlays.append(playData)
+                            playData.play.connectedPlays.append(newPATPlay)
+                    
                             changes.append(idr)
                         break
 

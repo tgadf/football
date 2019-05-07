@@ -140,8 +140,14 @@ class penalty:
         self.isPenalty = False
         if sum([x in text for x in ["penalty", "PENALTY", "Penalty", "Penalty,"]]) > 0:
             self.isPenalty = True
+            
+        if sum([x in text for x in ["Personal Foul", "Personal Foul", "Unsportsmanlike Conduct", "Face Mask"]]) > 0:
+            self.isPenalty = True
+            
+            
+        self.yards = 0
         
-        self.logger.debug("{0}Penalty Status: {1}".format(self.ind, self.isPenalty))
+        self.logger.debug("{0}Penalty Status: {1}  ({2})".format(self.ind, self.isPenalty, text))
         
                         
 
@@ -170,6 +176,9 @@ class footballplay:
         self.turnover = None
         self.newdowns = None
         
+        
+        self.connectedPlays = []
+                
         self.possession = None
         
         self.penalty = penalty(text)

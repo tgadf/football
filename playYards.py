@@ -23,6 +23,13 @@ class playyards:
         assert self.findPuntYards("Skyler DeLong punt for 32 yds, downed at the Lvile 15") == 32, "Should be 32"
         assert self.findKickReturnYards("Skyler DeLong punt for 32 yds, downed at the Lvile 15") == 0, "Should be 0"
         assert self.findPenaltyYards("ALABAMA Penalty, Delay of Game (-5 Yards) to the Lvile 9") == -5, "Should be -5"
+       
+        assert self.findPenaltyYards("LOUISVILLE Penalty, Substitution Infraction (-5 Yards) to the Lvile 16") == -5, "Should be -5"
+        assert self.findPenaltyYards("LOUISVILLE Penalty, False Start (Colin Wilson) to the Alab 44") == -5, "Should be -5"
+        assert self.findPenaltyYards("LOUISVILLE Penalty, Offensive Holding (Cole Bentley) to the Lvile 42") == -10, "Should be -10"
+        assert self.findPenaltyYards("ALABAMA Penalty, Defensive Offside (Quinnen Williams) to the Lvile 39") == 5, "Should be 5"
+        assert self.findPenaltyYards("ALABAMA Penalty, Delay of Game (-5 Yards) to the Lvile 9") == -5, "Should be -5"
+        
         
         
     def setPlay(self, text):
@@ -253,8 +260,8 @@ class playyards:
         
         pos  = text.find("(")
         if pos > 0:
-            text = text[pos:text.find(")")]
-            m = re.search(r"{0}\s{1}".format(num, dist), text)
+            partext = text[pos:text.find(")")]
+            m = re.search(r"{0}\s{1}".format(num, dist), partext)
             if m is not None:
                 result = m.groups(0)
                 yards  = int(result[0])
@@ -262,6 +269,30 @@ class playyards:
 
         if "declined" in text:
             return 0
+        
+        if "False Start" in text:
+            return -5
+        
+        if "Offensive Holding" in text:
+            return -10
+        
+        if "Defensive Holding" in text:
+            return 10
+        
+        if "Delay of Game" in text:
+            return -5
+        
+        if "Defensive Offside" in text:
+            return 5
+        
+        if "Ineligible Downfield" in text:
+            return -5
+        
+        if "Defensive Pass Interference" in text:
+            return 15
+        
+        if "Out of Bounds" in text:
+            return 35
         
         return None
         

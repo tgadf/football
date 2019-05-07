@@ -34,6 +34,7 @@ from playTypes import playsummary
 from analyzePossession import analyzepossession
 from analyzeYards import analyzeyards
 from analyzeKicking import analyzekicking
+from analyzePenalties import analyzepenalties
 
 from driveSummary import drivesummary
 
@@ -215,13 +216,14 @@ class playbyplay(espn, output):
                 players.augmentData(augmentedStatsData)
                 
                 
-                pfp = possessionfromplayer(players)                    
-                ps  = playstart()
-                pc  = playclock()
-                pt  = playtype()
-                ap  = analyzepossession(copmap, players)
-                ay  = analyzeyards()
-                ak  = analyzekicking()
+                pfp  = possessionfromplayer(players)                    
+                ps   = playstart()
+                pc   = playclock()
+                pt   = playtype()
+                ap   = analyzepossession(copmap, players)
+                ay   = analyzeyards()
+                ak   = analyzekicking()
+                apen = analyzepenalties()
                 pcc = possessionchangeclass(copmap)
                 
                 gameResult = []
@@ -338,6 +340,9 @@ class playbyplay(espn, output):
                 
                 gameResult = ak.kickoffs(gameResult)
                 gameResult = ak.returns(gameResult)
+                
+                #gameResult = apen.penalties(gameResult)
+                #gameResult = apen.isPenaltyAdditive(gameResult)
                 
 
                 scoreResult = ap.gamescore(gameResult, postDriveScores)

@@ -8,7 +8,7 @@ class debugclass:
         self.ind    = 0*" "
         self.sep    = "======================================================"
         
-        self.spacing = {"Drv": 5, "Ply": 5, "Poss": 5, "Dwn": 5, "Yds": 5, "Line": 10, "Play": 10, "Player": 10, "Keys": 40, "Text": 40}
+        self.spacing = {"Drv": 5, "Ply": 5, "Poss": 5, "Dwn": 5, "Yds": 5, "Penal": 5, "Pred": 10, "Line": 10, "Play": 10, "Player": 10, "Keys": 40, "Text": 40}
         self.naming  = []
         for key,value in self.spacing.items():
             self.naming.append("{0}: <{1}".format(len(self.naming), value))  
@@ -16,9 +16,32 @@ class debugclass:
 
 
     def header(self, fout=None):
-        self.logger.debug("{0: <5}{1: <5}{2: <5}{3: <5}{4: <5}{5: <10}{6: <6}{7: <6}{8: <12}{9: <25}{10: <40}{11: <40}".format(
-                "Drv", "Ply", "Poss", "Dwn", "ToGo", "Line", "Next", "Yards", "Play", "Player", "Keys", "Text"))
-
+        
+        self.dvals = {
+        "Drv": "Drv"       , "DrvN":    5,
+        "Ply": "Ply"       , "PlyN":    5,
+        "Poss": "Poss"     , "PossN":   5,
+        "Dwn": "Dwn"       , "DwnN":    5,
+        "ToGo": "ToGo"     , "ToGoN":   5,
+        "Line": "Line"     , "LineN":   10,
+        "Next": "Next"     , "NextN":   6,
+        "Yards": "Yards"   , "YardsN":  6,
+        "Conn": "Conn"     , "ConnN":   6,
+        "Penal": "Penal"   , "PenalN":  6,
+        "Pred": "Pred"     , "PredN":   6,
+        "Play": "Play"     , "PlayN":   12,
+        "Player": "Player" , "PlayerN": 25,
+        "Keys": "Keys"     , "KeysN":   40,
+        "Text": "Text"     , "TextN":   40
+        } 
+        
+        vals = []
+        for k,v in self.dvals.items():
+            if isinstance(v, str):
+                vals.append("{0}: <{1}".format(k, "{0}N".format(k)))        
+        vals = ["{0}{1}{2}".format('{', x, '}}').replace("<", "<{") for x in vals]
+        self.logger.debug("".join(vals).format_map(self.dvals))
+        
         
     def showPlay(self, drivePlay, driveNo=None, playNo=None):
         play       = drivePlay.play
@@ -36,9 +59,9 @@ class debugclass:
         down       = start.down
         if down is None:
             down = "-"
-        yds        = start.togo
-        if yds is None:
-            yds = "-"
+        togo        = start.togo
+        if togo is None:
+            togo = "-"
         startY     = start.startY
         if startY is None:
             startY = "?"
@@ -49,9 +72,13 @@ class debugclass:
         text       = possession.text
         keys       = ",".join(play.pa.getKeys())
         
-        resultyards = play.yds.yards
-        if resultyards is None:
-            resultyards = "?"
+        conn = len(play.connectedPlays)
+        if conn == 0:
+            conn = ""
+        
+        yards = play.yds.yards
+        if yards is None:
+            yards = "?"
         
         nextDiffYards = drivePlay.nextDiffYards
         if nextDiffYards is None:
@@ -59,22 +86,38 @@ class debugclass:
         prevDiffYards = drivePlay.prevDiffYards
         if prevDiffYards is None:
             prevDiffYards = "-"
+            
+        if play.penalty.isPenalty == True:
+            penal = 'x'
+        else:
+            penal = ''
+        
+        if isinstance(nextDiffYards, int):
+            pred = nextDiffYards == yards
+            if pred is False:
+                pred = 'x'
+            else:
+                pred = ''
+        else:
+            pred = ''
         
         
+        data = {"Drv": str(driveNo), "Ply": str(playNo), 
+                "Poss": poss, "Dwn": str(down), "ToGo": str(togo),
+                "Prev": str(prevDiffYards), "Next": str(nextDiffYards), "Yards": yards,
+                "Penal": str(penal), "Pred": str(pred), "Conn": conn,
+                "Line": line, "Play": str(name), "Player": str(player), 
+                "Keys": keys, "Text": str(text)}
+        for key in self.dvals.keys():
+            if data.get(key) is not None:
+                self.dvals[key] = data[key]
         
-        data = {"Drv": str(driveNo), "Ply": str(playNo), "Poss": poss, "Dwn": str(down), "Yds": str(yds),
-                "Prev": str(prevDiffYards), "Next": str(nextDiffYards), "Result": resultyards,
-                "Line": line, "Play": str(name), "Player": str(player), "Keys": keys, "Text": str(text)}
-        
-        naming  = []
-        for key,value in self.spacing.items():
-            naming.append("{0}: <{1}".format(key, value))
-        naming = "{"+"}{".join(naming)+"}"
-        
-        self.logger.debug("{0: <5}{1: <5}{2: <5}{3: <5}{4: <5}{5: <10}{6: <6}{7: <6}{8: <12}{9: <25}{10: <40}{11: <40}".format(
-                data["Drv"],data["Ply"], data["Poss"], data["Dwn"], data["Yds"], data["Line"], data["Next"], data["Result"], data["Play"], data["Player"], data["Keys"], data["Text"]))
-
-
+        vals = []
+        for k,v in self.dvals.items():
+            if k.endswith("N") is False:
+                vals.append("{0}: <{1}".format(k, "{0}N".format(k)))        
+        vals = ["{0}{1}{2}".format('{', x, '}}').replace("<", "<{") for x in vals]
+        self.logger.debug("".join(vals).format_map(self.dvals))
 
 
         
@@ -103,10 +146,11 @@ class debugclass:
         
     def showGame(self, gameData, expl=None):
         self.logger.debug("\n{0} ShowGame({1}) {2}".format(self.sep, expl, self.sep))
-        self.header()        
+        self.header()
         for idr,driveData in enumerate(gameData):
             drivePlays = driveData.plays
+            self.logger.debug("SUMMARY ===> {0}".format(driveData.getSummaryText()))
             for ipl,drivePlay in enumerate(drivePlays):
                 self.showPlay(drivePlay, driveNo=idr, playNo=ipl)
-            self.logger.debug("")
-        self.logger.debug("\n")
+            self.logger.debug("\n")
+        self.logger.debug("\n\n")
